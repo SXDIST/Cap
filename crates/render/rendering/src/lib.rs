@@ -466,7 +466,7 @@ pub async fn render_video_to_channel(
             friction: project.cursor.friction,
         });
 
-    let click_spring = project.cursor.click_spring_config();
+    let click_spring = project.cursor.click_spring;
 
     let precomputed_cursor_timelines: Vec<Arc<PrecomputedCursorTimeline>> = render_segments
         .iter()
@@ -474,7 +474,7 @@ pub async fn render_video_to_channel(
             Arc::new(PrecomputedCursorTimeline::new(
                 &segment.cursor,
                 cursor_smoothing,
-                Some(click_spring),
+                click_spring,
             ))
         })
         .collect();
@@ -486,7 +486,7 @@ pub async fn render_video_to_channel(
             ZoomFocusInterpolator::new_with_precomputed_cursor(
                 &segment.cursor,
                 cursor_smoothing,
-                click_spring,
+                click_spring.unwrap_or_default(),
                 project.screen_movement_spring,
                 duration,
                 project
@@ -794,7 +794,7 @@ pub async fn render_video_to_channel_nv12(
             friction: project.cursor.friction,
         });
 
-    let click_spring = project.cursor.click_spring_config();
+    let click_spring = project.cursor.click_spring;
 
     let precomputed_cursor_timelines: Vec<Arc<PrecomputedCursorTimeline>> = render_segments
         .iter()
@@ -802,7 +802,7 @@ pub async fn render_video_to_channel_nv12(
             Arc::new(PrecomputedCursorTimeline::new(
                 &segment.cursor,
                 cursor_smoothing,
-                Some(click_spring),
+                click_spring,
             ))
         })
         .collect();
@@ -815,7 +815,7 @@ pub async fn render_video_to_channel_nv12(
             ZoomFocusInterpolator::new_with_precomputed_cursor(
                 &segment.cursor,
                 cursor_smoothing,
-                click_spring,
+                click_spring.unwrap_or_default(),
                 project.screen_movement_spring,
                 duration,
                 project
@@ -2135,7 +2135,7 @@ impl ProjectUniforms {
             mass: project.cursor.mass,
             friction: project.cursor.friction,
         });
-        let click_spring_cfg = project.cursor.click_spring_config();
+        let click_spring_cfg = project.cursor.click_spring;
 
         let cursor_interp_fn = |time: f32| -> Option<InterpolatedCursorPosition> {
             match cursor_smoothing {
@@ -2143,7 +2143,7 @@ impl ProjectUniforms {
                     cursor_events,
                     time,
                     Some(cfg),
-                    Some(click_spring_cfg),
+                    click_spring_cfg,
                 ),
                 None => interpolate_cursor(cursor_events, time, None),
             }

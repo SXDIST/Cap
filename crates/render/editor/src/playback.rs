@@ -540,14 +540,14 @@ impl Playback {
                             mass: project.cursor.mass,
                             friction: project.cursor.friction,
                         });
-                    let click_spring = project.cursor.click_spring_config();
+                    let click_spring = project.cursor.click_spring;
                     self.segment_medias
                         .iter()
                         .map(|seg| {
                             Arc::new(PrecomputedCursorTimeline::new(
                                 &seg.cursor,
                                 cursor_smoothing,
-                                Some(click_spring),
+                                click_spring,
                             ))
                         })
                         .collect()

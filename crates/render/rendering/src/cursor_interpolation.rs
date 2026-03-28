@@ -7,7 +7,6 @@ use crate::{
     spring_mass_damper::{SpringMassDamperSimulation, SpringMassDamperSimulationConfig},
 };
 
-const CLICK_LOOKAHEAD_TARGET_MS: f64 = 500.0;
 const CLICK_SPRING_WINDOW_MS: f64 = 175.0;
 const SHAKE_THRESHOLD_UV: f64 = 0.015;
 const SHAKE_DETECTION_WINDOW_MS: f64 = 100.0;
@@ -112,54 +111,6 @@ impl<'a> CursorSpringContext<'a> {
             .get(self.next_click_index + idx)
             .is_some_and(|c| c.time_ms - time_ms <= CLICK_SPRING_WINDOW_MS)
     }
-}
-
-fn next_click_within(
-    clicks: &[CursorClickEvent],
-    time_ms: f64,
-    window_ms: f64,
-) -> Option<&CursorClickEvent> {
-    let idx = clicks.partition_point(|c| c.time_ms <= time_ms);
-    clicks.get(idx).filter(|c| c.time_ms - time_ms <= window_ms)
-}
-
-fn position_at_time(moves: &[CursorMoveEvent], time_ms: f64) -> (f64, f64) {
-    if moves.is_empty() {
-        return (0.0, 0.0);
-    }
-    if time_ms <= moves[0].time_ms {
-        return (moves[0].x, moves[0].y);
-    }
-    if let Some(last) = moves.last()
-        && time_ms >= last.time_ms
-    {
-        return (last.x, last.y);
-    }
-    moves
-        .windows(2)
-        .find_map(|w| {
-            if time_ms >= w[0].time_ms && time_ms < w[1].time_ms {
-                let dt = w[1].time_ms - w[0].time_ms;
-                if dt > IDLE_GAP_THRESHOLD_MS {
-                    return Some((w[0].x, w[0].y));
-                }
-                let u = if dt.abs() < 1e-9 {
-                    0.0
-                } else {
-                    (time_ms - w[0].time_ms) / dt
-                };
-                Some((
-                    w[0].x + (w[1].x - w[0].x) * u,
-                    w[0].y + (w[1].y - w[0].y) * u,
-                ))
-            } else {
-                None
-            }
-        })
-        .unwrap_or_else(|| {
-            let l = moves.last().unwrap();
-            (l.x, l.y)
-        })
 }
 
 const IDLE_GAP_THRESHOLD_MS: f64 = SIMULATION_STEP_MS * 4.0;
@@ -280,8 +231,17 @@ fn interpolate_raw_cursor(
             let delta_ms = (next.time_ms - c.time_ms) as f32;
             let dt = (delta_ms / 1000.0).max(0.000_1);
             let velocity = XY::new(((next.x - c.x) as f32) / dt, ((next.y - c.y) as f32) / dt);
+            let t = if delta_ms.abs() < f32::EPSILON {
+                0.0
+            } else {
+                ((time_ms as f32 - c.time_ms as f32) / delta_ms).clamp(0.0, 1.0)
+            };
+            let inv_t = 1.0 - t;
             Some(InterpolatedCursorPosition {
-                position: Coord::new(XY { x: c.x, y: c.y }),
+                position: Coord::new(XY {
+                    x: c.x * inv_t as f64 + next.x * t as f64,
+                    y: c.y * inv_t as f64 + next.y * t as f64,
+                }),
                 velocity,
                 cursor_id: c.cursor_id.clone(),
             })
@@ -379,14 +339,7 @@ fn build_smoothed_timeline(
         let (cx, cy) = position_at_time_hinted(moves, clamped_t, &mut move_hint);
         let cid = cursor_id_at_time(moves, clamped_t, move_hint).to_string();
 
-        let target = if let Some(click) =
-            next_click_within(&cursor.clicks, t_ms, CLICK_LOOKAHEAD_TARGET_MS)
-        {
-            let (tx, ty) = position_at_time(moves, click.time_ms.min(end_time_ms));
-            XY::new(tx as f32, ty as f32)
-        } else {
-            XY::new(cx as f32, cy as f32)
-        };
+        let target = XY::new(cx as f32, cy as f32);
 
         sim.set_target_position(target);
 
@@ -658,6 +611,50 @@ mod tests {
 
         context.advance_to(100.0);
         assert_eq!(context.profile(100.0), SpringProfile::Default);
+    }
+    #[test]
+    fn raw_interpolation_stays_between_neighboring_moves() {
+        let cursor = CursorEvents {
+            moves: vec![cursor_move(0.0, 0.0, 0.0), cursor_move(100.0, 1.0, 1.0)],
+            clicks: vec![],
+        };
+
+        let pos = interpolate_cursor(&cursor, 0.05, None).unwrap();
+
+        assert!((pos.position.coord.x - 0.5).abs() < 0.001);
+        assert!((pos.position.coord.y - 0.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn click_spring_does_not_pull_cursor_to_future_click_target() {
+        let cursor = CursorEvents {
+            moves: vec![
+                cursor_move(0.0, 0.1, 0.1),
+                cursor_move(400.0, 0.2, 0.2),
+                cursor_move(500.0, 0.9, 0.9),
+            ],
+            clicks: vec![click_event(500.0, true)],
+        };
+
+        let smoothing = SpringMassDamperSimulationConfig {
+            tension: 470.0,
+            mass: 3.0,
+            friction: 70.0,
+        };
+
+        let pos =
+            interpolate_cursor_with_click_spring(&cursor, 0.30, Some(smoothing), None).unwrap();
+
+        assert!(
+            pos.position.coord.x < 0.5,
+            "cursor advanced too early: {}",
+            pos.position.coord.x
+        );
+        assert!(
+            pos.position.coord.y < 0.5,
+            "cursor advanced too early: {}",
+            pos.position.coord.y
+        );
     }
 
     #[test]
