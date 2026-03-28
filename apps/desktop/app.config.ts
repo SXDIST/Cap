@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import capUIPlugin from "@cap/ui-solid/vite";
 import { defineConfig } from "@solidjs/start/config";
 import topLevelAwait from "vite-plugin-top-level-await";
@@ -7,12 +8,10 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
 	ssr: false,
 	server: { preset: "static" },
-	// https://vitejs.dev/config
 	vite: () => ({
-		// Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
-		// 1. tauri expects a fixed port, fail if that port is not available
 		server: {
-			port: 3001,
+			host: "localhost",
+			port: 3210,
 			strictPort: true,
 			watch: {
 				ignored: ["**/src-tauri/**"],
@@ -22,10 +21,14 @@ export default defineConfig({
 				"Cross-Origin-Embedder-Policy": "require-corp",
 			},
 		},
-		// 3. to make use of `TAURI_DEBUG` and other env variables
-		// https://tauri.studio/v1/api/config#buildconfig.beforedevcommand
 		envPrefix: ["VITE_", "TAURI_"],
 		assetsInclude: ["**/*.riv"],
+		resolve: {
+			alias: {
+				debug: fileURLToPath(new URL("./src/shims/debug-browser.ts", import.meta.url)),
+				extend: fileURLToPath(new URL("./src/shims/extend.ts", import.meta.url)),
+			},
+		},
 		plugins: [
 			wasm(),
 			topLevelAwait(),
@@ -51,6 +54,7 @@ export default defineConfig({
 				"@tauri-apps/api/core",
 				"@tauri-apps/api/event",
 				"cva",
+				"extend",
 			],
 		},
 	}),

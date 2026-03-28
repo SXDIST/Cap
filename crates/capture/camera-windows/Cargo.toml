@@ -1,0 +1,24 @@
+[package]
+name = "cap-capture-camera-windows"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+thiserror.workspace = true
+inquire = "0.7.5"
+workspace-hack = { package = "cap-core-workspace-hack", version = "0.1", path = "../../core/workspace-hack" }
+
+[target.'cfg(windows)'.dependencies]
+cap-mediafoundation-utils = { package = "cap-media-windows-mediafoundation-utils", path = "../../media/windows-mediafoundation-utils" }
+cap-camera-mediafoundation = { package = "cap-capture-camera-mediafoundation", path = "../camera-mediafoundation" }
+cap-camera-directshow = { package = "cap-capture-camera-directshow", path = "../camera-directshow" }
+
+windows = { workspace = true }
+windows-core = { workspace = true }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+inquire = "0.7.5"

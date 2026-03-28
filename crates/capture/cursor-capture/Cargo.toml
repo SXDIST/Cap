@@ -1,0 +1,16 @@
+[package]
+name = "cap-capture-cursor-capture"
+version = "0.1.0"
+edition = "2024"
+
+[lints]
+workspace = true
+
+[dependencies]
+scap-targets = { package = "cap-capture-screen-targets", path = "../screen-targets" }
+
+device_query = "4.0.1"
+workspace-hack = { package = "cap-core-workspace-hack", version = "0.1", path = "../../core/workspace-hack" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-graphics = "0.24.0"

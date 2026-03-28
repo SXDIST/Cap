@@ -77,28 +77,28 @@ whisper-rs = "0.11.0"
 lazy_static = "1.4.0"
 log = "0.4.20"
 
-cap-audio = { path = "../../../crates/audio" }
-cap-camera = { path = "../../../crates/camera", features = ["serde", "specta"] }
-cap-utils = { path = "../../../crates/utils" }
-cap-project = { path = "../../../crates/project" }
-cap-rendering = { path = "../../../crates/rendering" }
-cap-editor = { path = "../../../crates/editor" }
-cap-media = { path = "../../../crates/media" }
-cap-flags = { path = "../../../crates/flags" }
-cap-recording = { path = "../../../crates/recording" }
-cap-export = { path = "../../../crates/export" }
-cap-enc-ffmpeg = { path = "../../../crates/enc-ffmpeg" }
-cap-media-info = { path = "../../../crates/media-info" }
-scap-targets = { path = "../../../crates/scap-targets" }
-scap-screencapturekit = { path = "../../../crates/scap-screencapturekit" }
-scap-direct3d = { path = "../../../crates/scap-direct3d" }
+cap-audio = { package = "cap-core-audio", path = "../../../crates/core/audio" }
+cap-camera = { package = "cap-capture-camera", path = "../../../crates/capture/camera", features = ["serde", "specta"] }
+cap-utils = { package = "cap-core-utils", path = "../../../crates/core/utils" }
+cap-project = { package = "cap-core-project", path = "../../../crates/core/project" }
+cap-rendering = { package = "cap-render-pipeline", path = "../../../crates/render/rendering" }
+cap-editor = { package = "cap-render-editor", path = "../../../crates/render/editor" }
+cap-media = { package = "cap-media-pipeline", path = "../../../crates/media/media" }
+cap-flags = { package = "cap-core-flags", path = "../../../crates/core/flags" }
+cap-recording = { package = "cap-render-recording", path = "../../../crates/render/recording" }
+cap-export = { package = "cap-render-export", path = "../../../crates/render/export" }
+cap-enc-ffmpeg = { package = "cap-render-encoder-ffmpeg", path = "../../../crates/render/encoder-ffmpeg" }
+cap-media-info = { package = "cap-media-info", path = "../../../crates/media/media-info" }
+scap-targets = { package = "cap-capture-screen-targets", path = "../../../crates/capture/screen-targets" }
+scap-screencapturekit = { package = "cap-capture-screen-capturekit", path = "../../../crates/capture/screen-capturekit" }
+scap-direct3d = { package = "cap-capture-screen-direct3d", path = "../../../crates/capture/screen-direct3d" }
 
 flume.workspace = true
 tracing-subscriber = "0.3.19"
 tracing-appender = "0.2.3"
 dirs = "6.0.0"
 relative-path = "1.9.3"
-cap-fail = { version = "0.1.0", path = "../../../crates/fail" }
+cap-fail = { package = "cap-core-fail", version = "0.1.0", path = "../../../crates/core/fail" }
 tokio-stream = { version = "0.1.17", features = ["sync"] }
 md5 = "0.7.0"
 tokio-util = "0.7.15"
@@ -118,7 +118,7 @@ opentelemetry-otlp = "0.31.0"                                                 #{
 opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio", "trace"] }
 posthog-rs = "0.3.7"
 sysinfo = "0.35"
-workspace-hack = { version = "0.1", path = "../../../crates/workspace-hack" }
+workspace-hack = { package = "cap-core-workspace-hack", version = "0.1", path = "../../../crates/core/workspace-hack" }
 aho-corasick.workspace = true
 
 

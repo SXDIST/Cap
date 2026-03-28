@@ -71,3 +71,6 @@ analysis/
 analysis/plans/
 .ralphy
 tmp/
+.codex/
+.pnpm-store/
+apps/desktop/app.config.timestamp_*.js

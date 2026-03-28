@@ -1,0 +1,12 @@
+[package]
+name = "cap-media-cpal-ffmpeg"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cpal.workspace = true
+ffmpeg.workspace = true
+workspace-hack = { package = "cap-core-workspace-hack", version = "0.1", path = "../../core/workspace-hack" }
+
+[lints]
+workspace = true

@@ -1,0 +1,27 @@
+[package]
+name = "cap-capture-camera-ffmpeg"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+ffmpeg = { workspace = true }
+thiserror.workspace = true
+tracing.workspace = true
+cap-camera = { package = "cap-capture-camera", path = "../camera" }
+workspace-hack = { package = "cap-core-workspace-hack", version = "0.1", path = "../../core/workspace-hack" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+cidre = { workspace = true }
+cap-camera-avfoundation = { package = "cap-capture-camera-avfoundation", path = "../camera-avfoundation" }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true }
+windows-core = { workspace = true }
+cap-camera-windows = { package = "cap-capture-camera-windows", path = "../camera-windows" }
+
+[dev-dependencies]
+inquire = "0.7.5"
+
+[lints]
+workspace = true

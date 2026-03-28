@@ -1,0 +1,41 @@
+[package]
+name = "cap-render-editor"
+version = "0.1.0"
+edition = "2024"
+
+[lints]
+workspace = true
+
+[[example]]
+name = "decode-benchmark"
+path = "examples/decode-benchmark.rs"
+
+[[example]]
+name = "playback-pipeline-benchmark"
+path = "examples/playback-pipeline-benchmark.rs"
+
+[dependencies]
+cap-media = { package = "cap-media-pipeline", path = "../../media/media" }
+cap-project = { package = "cap-core-project", path = "../../core/project" }
+cap-rendering = { package = "cap-render-pipeline", path = "../rendering" }
+cap-audio = { package = "cap-core-audio", path = "../../core/audio" }
+cap-media-info = { package = "cap-media-info", path = "../../media/media-info" }
+
+tokio = { workspace = true, features = ["macros", "process", "fs"] }
+cpal.workspace = true
+axum = { version = "0.7.5", features = ["ws"] }
+ffmpeg.workspace = true
+specta.workspace = true
+serde = { workspace = true }
+sentry.workspace = true
+futures = { workspace = true }
+tracing.workspace = true
+flume.workspace = true
+tokio-util = "0.7.15"
+ringbuf = "0.4.8"
+lru = "0.12"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+workspace-hack = { package = "cap-core-workspace-hack", version = "0.1", path = "../../core/workspace-hack" }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { workspace = true, features = ["Win32_Media"] }

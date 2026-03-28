@@ -1,0 +1,13 @@
+[package]
+name = "cap-capture-screen-audio"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+cpal.workspace = true
+thiserror.workspace = true
+workspace-hack = { package = "cap-core-workspace-hack", version = "0.1", path = "../../core/workspace-hack" }
+
+[lints]
+workspace = true
