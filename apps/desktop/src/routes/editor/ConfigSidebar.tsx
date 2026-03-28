@@ -751,33 +751,37 @@ export function ConfigSidebar() {
 							name="Cursor Movement Style"
 							icon={<IconLucideRabbit class="size-4" />}
 						>
-							<RadioGroup
-								class="flex flex-col gap-2"
-								value={project.cursor.animationStyle}
-								onChange={(value) =>
-									applyCursorStylePreset(value as CursorAnimationStyle)
-								}
-							>
-								{CURSOR_ANIMATION_STYLE_OPTIONS.map((option) => (
-									<RadioGroup.Item
-										value={option.value}
-										class="rounded-lg border border-gray-3 transition-colors ui-checked:border-blue-8 ui-checked:bg-blue-3/40"
+							<div class="flex flex-col gap-2">
+							{CURSOR_ANIMATION_STYLE_OPTIONS.map((option) => {
+								const isActive = project.cursor.animationStyle === option.value;
+
+								return (
+									<button
+										type="button"
+										onClick={() => applyCursorStylePreset(option.value)}
+										class={cx(
+											"flex w-full items-start gap-3 rounded-lg border border-gray-3 p-3 text-left transition-colors",
+											isActive && "border-blue-8 bg-blue-3/40",
+										)}
 									>
-										<RadioGroup.ItemInput class="sr-only" />
-										<RadioGroup.ItemLabel class="flex cursor-pointer items-start gap-3 p-3">
-											<RadioGroup.ItemControl class="mt-1 size-4 rounded-full border border-gray-7 ui-checked:border-blue-9 ui-checked:bg-blue-9" />
-											<div class="flex flex-col text-left">
-												<span class="text-sm font-medium text-gray-12">
-													{option.label}
-												</span>
-												<span class="text-xs text-gray-11">
-													{option.description}
-												</span>
-											</div>
-										</RadioGroup.ItemLabel>
-									</RadioGroup.Item>
-								))}
-							</RadioGroup>
+										<span
+											class={cx(
+												"mt-1 size-4 rounded-full border border-gray-7",
+												isActive && "border-blue-9 bg-blue-9",
+											)}
+										/>
+										<div class="flex flex-col text-left">
+											<span class="text-sm font-medium text-gray-12">
+												{option.label}
+											</span>
+											<span class="text-xs text-gray-11">
+												{option.description}
+											</span>
+										</div>
+									</button>
+								);
+							})}
+						</div>
 						</Field>
 						<KCollapsible open={!project.cursor.raw}>
 							<Field
