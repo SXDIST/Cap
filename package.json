@@ -4,15 +4,21 @@
 	"scripts": {
 		"build": "pnpm run desktop:setup && pnpm --filter @cap/desktop build:tauri",
 		"desktop:setup": "node tooling/desktop/setup.js",
-		"dev": "pnpm run desktop:setup && pnpm --filter @cap/desktop dev",
-		"dev:desktop": "pnpm run desktop:setup && pnpm --filter @cap/desktop dev",
+		"dev": "pnpm --filter @cap/desktop dev",
+		"dev:desktop": "pnpm --filter @cap/desktop dev",
 		"format": "pnpm exec biome check --write",
 		"lint": "pnpm exec biome lint",
-		"tauri:build": "pnpm run desktop:setup && pnpm --dir apps/desktop tauri build --verbose",
+		"tauri:build": "pnpm run desktop:setup && pnpm --dir apps/desktop tauri build --no-bundle --verbose",
 		"typecheck": "pnpm --dir apps/desktop exec tsc -p tsconfig.json",
 		"test:desktop:memory": "pnpm --dir apps/desktop test:memory",
 		"test:desktop:memory:unit": "pnpm --dir apps/desktop test:memory:unit",
-		"check-tauri-versions": "node tooling/desktop/check-tauri-plugin-versions.js"
+		"check-tauri-versions": "node tooling/desktop/check-tauri-plugin-versions.js",
+		"dev:setup": "pnpm run desktop:setup",
+		"dev:full": "pnpm run desktop:setup && pnpm --filter @cap/desktop dev",
+		"fastdev": "pnpm --filter @cap/desktop dev",
+		"rust:check": "cargo check -p cap-render-pipeline --lib -p cap-render-editor -p cap-desktop",
+		"rust:check:render": "cargo check -p cap-render-pipeline --lib -p cap-render-editor",
+		"rust:check:core": "cargo check -p cap-core-project"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.0",

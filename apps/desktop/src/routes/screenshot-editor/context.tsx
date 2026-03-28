@@ -90,6 +90,8 @@ export type CurrentDialog =
 
 export type DialogState = { open: false } | ({ open: boolean } & CurrentDialog);
 
+type CursorThemeValue = "recorded" | "windows" | "macos" | "macosTahoe";
+
 const DEFAULT_CAMERA: Camera = {
 	hide: false,
 	mirror: false,
@@ -111,12 +113,13 @@ const DEFAULT_AUDIO: AudioConfiguration = {
 	systemVolumeDb: 0,
 };
 
-const DEFAULT_CURSOR: CursorConfiguration = {
+const DEFAULT_CURSOR: CursorConfiguration & { theme: CursorThemeValue } = {
 	hide: false,
 	hideWhenIdle: false,
 	hideWhenIdleDelay: 2,
 	size: 100,
 	type: "auto",
+	theme: "recorded",
 	animationStyle: "mellow",
 	tension: 120,
 	mass: 1.1,

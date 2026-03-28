@@ -22,6 +22,14 @@ const arch =
 
 const BASE_CARGO_TOML = `[env]
 FFMPEG_DIR = { relative = true, force = true, value = "target/native-deps" }
+
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+	"-C",
+	"link-arg=/CGTHREADS:8",
+	"-C",
+	"link-arg=/DEBUG:FASTLINK"
+]
 `;
 
 async function main() {
@@ -161,15 +169,20 @@ async function main() {
 		);
 
 		if (await fileExists(vswherePath)) {
-			const { stdout: vcInstallDir } = await exec(
-				'$(& "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe" -latest -property installationPath)',
-				{ shell: "powershell.exe" },
-			);
+			try {
+				const { stdout: vcInstallDir } = await execFile(vswherePath, [
+					"-latest",
+					"-property",
+					"installationPath",
+				]);
 
-			if (vcInstallDir.trim()) {
-				candidateLibclangPaths.push(
-					path.join(vcInstallDir.trim(), "VC/Tools/LLVM/x64/bin/libclang.dll"),
-				);
+				if (vcInstallDir.trim()) {
+					candidateLibclangPaths.push(
+						path.join(vcInstallDir.trim(), "VC/Tools/LLVM/x64/bin/libclang.dll"),
+					);
+				}
+			} catch {
+				console.warn("Skipping vswhere lookup and using default LLVM path");
 			}
 		}
 
@@ -190,10 +203,14 @@ async function main() {
 	}
 
 	await fs.mkdir(path.join(__root, ".cargo"), { recursive: true });
-	await fs.writeFile(
-		path.join(__root, ".cargo/config.toml"),
-		cargoConfigContents,
-	);
+	const cargoConfigPath = path.join(__root, ".cargo/config.toml");
+	const currentCargoConfig = await fs.readFile(cargoConfigPath, "utf8").catch(() => null);
+	if (currentCargoConfig !== cargoConfigContents) {
+		await fs.writeFile(cargoConfigPath, cargoConfigContents);
+		console.log("Updated .cargo/config.toml");
+	} else {
+		console.log("Keeping existing .cargo/config.toml");
+	}
 }
 
 main();

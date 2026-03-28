@@ -100,6 +100,18 @@ lto = true        # Enables link to optimizations
 opt-level = "s"   # Optimize for binary size
 debug = true
 
+[profile.dev]
+opt-level = 0
+debug = 0
+incremental = true
+codegen-units = 256
+lto = false
+
+[profile.dev.build-override]
+opt-level = 0
+debug = 0
+codegen-units = 256
+
 [patch.crates-io]
 # screencapturekit = { git = "https://github.com/CapSoftware/screencapturekit-rs", rev = "7ff1e103742e56c8f6c2e940b5e52684ed0bed69" } # branch = "cap-main"
 cidre = { git = "https://github.com/CapSoftware/cidre", rev = "bf84b67079a8" }

@@ -360,6 +360,62 @@ pub struct SingleSegment {
     pub cursor: Option<RelativePathBuf>,
 }
 
+impl SingleSegment {
+    pub fn latest_start_time(&self) -> Option<f64> {
+        let mut value = self.display.start_time?;
+
+        if let Some(camera) = &self.camera {
+            value = value.max(camera.start_time?);
+        }
+
+        if let Some(audio) = &self.audio {
+            value = value.max(audio.start_time?);
+        }
+
+        Some(value)
+    }
+
+    pub fn calculate_audio_offsets_with_calibration(
+        &self,
+        calibration_offset: Option<f32>,
+    ) -> crate::ClipOffsets {
+        let latest = match self.latest_start_time() {
+            Some(t) => t,
+            None => return crate::ClipOffsets::default(),
+        };
+
+        let cal_offset = calibration_offset.unwrap_or(0.0);
+
+        let camera_offset = self
+            .camera
+            .as_ref()
+            .and_then(|c| c.start_time)
+            .map(|t| (latest - t) as f32)
+            .unwrap_or(0.0);
+
+        let mic_offset = self
+            .audio
+            .as_ref()
+            .and_then(|m| m.start_time)
+            .map(|t| (latest - t) as f32 + cal_offset)
+            .unwrap_or(0.0);
+
+        crate::ClipOffsets {
+            camera: camera_offset,
+            mic: mic_offset,
+            system_audio: 0.0,
+        }
+    }
+
+    pub fn camera_device_id(&self) -> Option<&str> {
+        self.camera.as_ref().and_then(|c| c.device_id.as_deref())
+    }
+
+    pub fn mic_device_id(&self) -> Option<&str> {
+        self.audio.as_ref().and_then(|m| m.device_id.as_deref())
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct MultipleSegments {

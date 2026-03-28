@@ -46,6 +46,7 @@ import type {
 	CaptionTrackSegment,
 	ClipOffsets,
 	CursorAnimationStyle,
+	CursorConfiguration,
 	CursorType,
 	KeyboardTrackSegment,
 	SceneSegment,
@@ -220,6 +221,10 @@ type CursorPresetValues = {
 	friction: number;
 };
 
+type CursorThemeValue = "recorded" | "windows" | "macos" | "macosTahoe";
+
+type CursorProjectConfig = CursorConfiguration & { theme?: CursorThemeValue };
+
 const DEFAULT_CURSOR_MOTION_BLUR = 0.3;
 
 const CURSOR_TYPE_OPTIONS = [
@@ -232,6 +237,29 @@ const CURSOR_TYPE_OPTIONS = [
 		value: "circle" as CursorType,
 		label: "Circle",
 		description: "A touch-style circle cursor like mobile simulators.",
+	},
+];
+
+const CURSOR_THEME_OPTIONS = [
+	{
+		value: "recorded" as CursorThemeValue,
+		label: "Recorded",
+		description: "Keeps the cursor family that was captured in the recording.",
+	},
+	{
+		value: "windows" as CursorThemeValue,
+		label: "Windows",
+		description: "Forces the cursor to use Windows-style SVG assets.",
+	},
+	{
+		value: "macos" as CursorThemeValue,
+		label: "macOS",
+		description: "Uses the classic macOS cursor set for every supported shape.",
+	},
+	{
+		value: "macosTahoe" as CursorThemeValue,
+		label: "macOS Tahoe",
+		description: "Uses the newer Tahoe-style macOS cursor set.",
 	},
 ];
 
@@ -316,6 +344,10 @@ export function ConfigSidebar() {
 		editorState,
 		meta,
 	} = useEditorContext();
+
+	const cursorTheme = () =>
+		((project.cursor as CursorProjectConfig).theme ??
+			"recorded") as CursorThemeValue;
 
 	const cursorIdleDelay = () =>
 		((project.cursor as { hideWhenIdleDelay?: number }).hideWhenIdleDelay ??
@@ -634,6 +666,44 @@ export function ConfigSidebar() {
 								step={1}
 							/>
 						</Field>
+						<Show when={project.cursor.type === "auto"}>
+							<Field
+								name="Cursor Theme"
+								icon={<IconLucidePalette class="size-4" />}
+							>
+								<RadioGroup
+									class="flex flex-col gap-2"
+									value={cursorTheme()}
+									onChange={(value) =>
+										setProject(
+											"cursor",
+											"theme" as any,
+											value as CursorThemeValue,
+										)
+									}
+								>
+									{CURSOR_THEME_OPTIONS.map((option) => (
+										<RadioGroup.Item
+											value={option.value}
+											class="rounded-lg border border-gray-3 transition-colors ui-checked:border-blue-8 ui-checked:bg-blue-3/40"
+										>
+											<RadioGroup.ItemInput class="sr-only" />
+											<RadioGroup.ItemLabel class="flex cursor-pointer items-start gap-3 p-3">
+												<RadioGroup.ItemControl class="mt-1 size-4 rounded-full border border-gray-7 ui-checked:border-blue-9 ui-checked:bg-blue-9" />
+												<div class="flex flex-col text-left">
+													<span class="text-sm font-medium text-gray-12">
+														{option.label}
+													</span>
+													<span class="text-xs text-gray-11">
+														{option.description}
+													</span>
+												</div>
+											</RadioGroup.ItemLabel>
+										</RadioGroup.Item>
+									))}
+								</RadioGroup>
+							</Field>
+						</Show>
 						<Field name="Tilt" icon={<IconLucideRotate3d class="size-4" />}>
 							<Slider
 								value={[project.cursor.rotationAmount ?? 0.15]}

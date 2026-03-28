@@ -1,0 +1,3 @@
+[env]
+FFMPEG_DIR = { relative = true, force = true, value = "target/native-deps" }
+LIBCLANG_PATH = "C:/Program Files/LLVM/bin/libclang.dll"

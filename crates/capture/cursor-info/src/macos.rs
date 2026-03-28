@@ -67,6 +67,98 @@ pub enum CursorShapeMacOS {
 }
 
 impl CursorShapeMacOS {
+    pub fn to_classic(self) -> Self {
+        match self {
+            Self::TahoeArrow => Self::Arrow,
+            Self::TahoeContextualMenu => Self::ContextualMenu,
+            Self::TahoeClosedHand => Self::ClosedHand,
+            Self::TahoeCrosshair => Self::Crosshair,
+            Self::TahoeDisappearingItem => Self::DisappearingItem,
+            Self::TahoeDragCopy => Self::DragCopy,
+            Self::TahoeDragLink => Self::DragLink,
+            Self::TahoeIBeam => Self::IBeam,
+            Self::TahoeOpenHand => Self::OpenHand,
+            Self::TahoeOperationNotAllowed => Self::OperationNotAllowed,
+            Self::TahoePointingHand => Self::PointingHand,
+            Self::TahoeResizeDown => Self::ResizeDown,
+            Self::TahoeResizeLeft => Self::ResizeLeft,
+            Self::TahoeResizeLeftRight => Self::ResizeLeftRight,
+            Self::TahoeResizeRight => Self::ResizeRight,
+            Self::TahoeResizeUp => Self::ResizeUp,
+            Self::TahoeResizeUpDown => Self::ResizeUpDown,
+            Self::TahoeIBeamVerticalForVerticalLayout => Self::IBeamVerticalForVerticalLayout,
+            Self::TahoeZoomIn => Self::Arrow,
+            Self::TahoeZoomOut => Self::Arrow,
+            value => value,
+        }
+    }
+
+    pub fn to_tahoe(self) -> Self {
+        match self {
+            Self::Arrow => Self::TahoeArrow,
+            Self::ContextualMenu => Self::TahoeContextualMenu,
+            Self::ClosedHand => Self::TahoeClosedHand,
+            Self::Crosshair => Self::TahoeCrosshair,
+            Self::DisappearingItem => Self::TahoeDisappearingItem,
+            Self::DragCopy => Self::TahoeDragCopy,
+            Self::DragLink => Self::TahoeDragLink,
+            Self::IBeam => Self::TahoeIBeam,
+            Self::OpenHand => Self::TahoeOpenHand,
+            Self::OperationNotAllowed => Self::TahoeOperationNotAllowed,
+            Self::PointingHand => Self::TahoePointingHand,
+            Self::ResizeDown => Self::TahoeResizeDown,
+            Self::ResizeLeft => Self::TahoeResizeLeft,
+            Self::ResizeLeftRight => Self::TahoeResizeLeftRight,
+            Self::ResizeRight => Self::TahoeResizeRight,
+            Self::ResizeUp => Self::TahoeResizeUp,
+            Self::ResizeUpDown => Self::TahoeResizeUpDown,
+            Self::IBeamVerticalForVerticalLayout => Self::TahoeIBeamVerticalForVerticalLayout,
+            value => value,
+        }
+    }
+
+    pub fn to_windows(self) -> crate::CursorShapeWindows {
+        match self.to_classic() {
+            Self::Arrow
+            | Self::ContextualMenu
+            | Self::DisappearingItem
+            | Self::DragCopy
+            | Self::DragLink => crate::CursorShapeWindows::Arrow,
+            Self::ClosedHand | Self::OpenHand | Self::PointingHand => {
+                crate::CursorShapeWindows::Hand
+            }
+            Self::Crosshair => crate::CursorShapeWindows::Cross,
+            Self::IBeam | Self::IBeamVerticalForVerticalLayout => crate::CursorShapeWindows::IBeam,
+            Self::OperationNotAllowed => crate::CursorShapeWindows::No,
+            Self::ResizeDown | Self::ResizeUp | Self::ResizeUpDown => {
+                crate::CursorShapeWindows::SizeNS
+            }
+            Self::ResizeLeft | Self::ResizeRight | Self::ResizeLeftRight => {
+                crate::CursorShapeWindows::SizeWE
+            }
+            Self::TahoeArrow
+            | Self::TahoeContextualMenu
+            | Self::TahoeClosedHand
+            | Self::TahoeCrosshair
+            | Self::TahoeDisappearingItem
+            | Self::TahoeDragCopy
+            | Self::TahoeDragLink
+            | Self::TahoeIBeam
+            | Self::TahoeOpenHand
+            | Self::TahoeOperationNotAllowed
+            | Self::TahoePointingHand
+            | Self::TahoeResizeDown
+            | Self::TahoeResizeLeft
+            | Self::TahoeResizeLeftRight
+            | Self::TahoeResizeRight
+            | Self::TahoeResizeUp
+            | Self::TahoeResizeUpDown
+            | Self::TahoeIBeamVerticalForVerticalLayout
+            | Self::TahoeZoomIn
+            | Self::TahoeZoomOut => unreachable!(),
+        }
+    }
+
     pub fn resolve(&self) -> Option<ResolvedCursor> {
         Some(match self {
             Self::Arrow => ResolvedCursor {

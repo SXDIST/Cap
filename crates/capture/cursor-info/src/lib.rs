@@ -10,6 +10,18 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 pub use windows::CursorShapeWindows;
 
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Type, Default,
+)]
+#[serde(rename_all = "camelCase")]
+pub enum CursorTheme {
+    #[default]
+    Recorded,
+    Windows,
+    Macos,
+    MacosTahoe,
+}
+
 /// Information about a resolved cursor shape
 #[derive(Debug, Clone)]
 pub struct ResolvedCursor {
@@ -32,6 +44,24 @@ impl CursorShape {
         match self {
             CursorShape::MacOS(cursor) => cursor.resolve(),
             CursorShape::Windows(cursor) => cursor.resolve(),
+        }
+    }
+
+    pub fn with_theme(&self, theme: CursorTheme) -> Self {
+        match theme {
+            CursorTheme::Recorded => *self,
+            CursorTheme::Windows => CursorShape::Windows(match self {
+                CursorShape::MacOS(cursor) => cursor.to_windows(),
+                CursorShape::Windows(cursor) => *cursor,
+            }),
+            CursorTheme::Macos => CursorShape::MacOS(match self {
+                CursorShape::MacOS(cursor) => cursor.to_classic(),
+                CursorShape::Windows(cursor) => cursor.to_macos_classic(),
+            }),
+            CursorTheme::MacosTahoe => CursorShape::MacOS(match self {
+                CursorShape::MacOS(cursor) => cursor.to_tahoe(),
+                CursorShape::Windows(cursor) => cursor.to_macos_tahoe(),
+            }),
         }
     }
 }

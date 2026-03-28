@@ -5,6 +5,7 @@ use std::{
     path::Path,
 };
 
+use cap_cursor_info::CursorTheme;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
@@ -501,6 +502,8 @@ pub struct CursorConfiguration {
     pub hide_when_idle_delay: f32,
     pub size: u32,
     r#type: CursorType,
+    #[serde(default)]
+    pub theme: CursorTheme,
     pub animation_style: CursorAnimationStyle,
     pub tension: f32,
     pub mass: f32,
@@ -527,6 +530,7 @@ impl Default for CursorConfiguration {
             hide_when_idle_delay: Self::default_hide_when_idle_delay(),
             size: 150,
             r#type: CursorType::default(),
+            theme: CursorTheme::default(),
             animation_style,
             tension: 470.0,
             mass: 3.0,
@@ -560,6 +564,10 @@ impl CursorConfiguration {
 
     pub fn cursor_type(&self) -> &CursorType {
         &self.r#type
+    }
+
+    pub fn cursor_theme(&self) -> CursorTheme {
+        self.theme
     }
 
     pub fn click_spring_config(&self) -> ClickSpringConfig {

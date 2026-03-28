@@ -99,10 +99,15 @@ export async function createTauriPlatformConfigs(
 	const mergedConfig = configOptions
 		? deepMerge(baseConfig, configOptions)
 		: baseConfig;
-	await fs.writeFile(
-		`${srcTauri}/${configFileName}`,
-		JSON.stringify(mergedConfig, null, 2),
-	);
+	const configPath = `${srcTauri}/${configFileName}`;
+	const nextConfig = JSON.stringify(mergedConfig, null, 2);
+	const currentConfig = await fs.readFile(configPath, "utf-8").catch(() => null);
+	if (currentConfig !== nextConfig) {
+		await fs.writeFile(configPath, nextConfig);
+		console.log(`Wrote ${configFileName}`);
+	} else {
+		console.log(`${configFileName} is up to date`);
+	}
 }
 
 async function main() {

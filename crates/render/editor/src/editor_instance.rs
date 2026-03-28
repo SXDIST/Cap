@@ -234,10 +234,16 @@ impl EditorInstance {
                         })
                         .collect();
                 }
-                StudioRecordingMeta::SingleSegment { .. } => {
+                StudioRecordingMeta::SingleSegment { segment } => {
+                    let calibration_offset = get_calibration_offset(
+                        segment.camera_device_id(),
+                        segment.mic_device_id(),
+                        &calibration_store,
+                    );
                     project.clips = vec![cap_project::ClipConfiguration {
                         index: 0,
-                        offsets: cap_project::ClipOffsets::default(),
+                        offsets: segment
+                            .calculate_audio_offsets_with_calibration(calibration_offset),
                     }];
                 }
             }

@@ -2,15 +2,17 @@
 	"name": "@cap/desktop",
 	"type": "module",
 	"scripts": {
-		"dev": "call \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat\" -no_logo -arch=x64 -host_arch=x64 && set PATH=C:\\Program Files\\CMake\\bin;%USERPROFILE%\\.cargo\\bin;%PATH% && pnpm run preparescript && pnpm tauri dev",
-		"dev:attach": "call \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat\" -no_logo -arch=x64 -host_arch=x64 && set PATH=C:\\Program Files\\CMake\\bin;%USERPROFILE%\\.cargo\\bin;%PATH% && pnpm run preparescript && pnpm tauri dev -c src-tauri/tauri.attach.conf.json",
+		"dev": "call \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat\" -no_logo -arch=x64 -host_arch=x64 && set PATH=C:\\Program Files\\CMake\\bin;%USERPROFILE%\\.cargo\\bin;%PATH% && pnpm run preparescript:cached && pnpm tauri dev",
+		"dev:attach": "call \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat\" -no_logo -arch=x64 -host_arch=x64 && set PATH=C:\\Program Files\\CMake\\bin;%USERPROFILE%\\.cargo\\bin;%PATH% && pnpm run preparescript:cached && pnpm tauri dev -c src-tauri/tauri.attach.conf.json",
 		"build:tauri": "call \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat\" -no_logo -arch=x64 -host_arch=x64 && set PATH=C:\\Program Files\\CMake\\bin;%USERPROFILE%\\.cargo\\bin;%PATH% && pnpm run preparescript && pnpm tauri build",
 		"preparescript": "node scripts/prepare.js",
 		"localdev": "vinxi dev --host localhost --port 3210 --strictPort",
 		"build": "vinxi build",
 		"tauri": "call \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat\" -no_logo -arch=x64 -host_arch=x64 && set PATH=C:\\Program Files\\CMake\\bin;%USERPROFILE%\\.cargo\\bin;%PATH% && tauri",
 		"test:memory": "node scripts/desktop-memory-soak.js",
-		"test:memory:unit": "vitest run scripts/desktop-memory-soak.test.js"
+		"test:memory:unit": "vitest run scripts/desktop-memory-soak.test.js",
+		"preparescript:cached": "node scripts/prepare.js",
+		"dev:fast": "call \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat\" -no_logo -arch=x64 -host_arch=x64 && set PATH=C:\\Program Files\\CMake\\bin;%USERPROFILE%\\.cargo\\bin;%PATH% && pnpm run preparescript:cached && pnpm tauri dev"
 	},
 	"dependencies": {
 		"@aerofoil/rive-solid-canvas": "^2.1.4",

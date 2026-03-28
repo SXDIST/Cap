@@ -66,6 +66,74 @@ pub enum CursorShapeWindows {
 }
 
 impl CursorShapeWindows {
+    pub fn to_macos_classic(self) -> crate::CursorShapeMacOS {
+        match self {
+            Self::Arrow
+            | Self::AppStarting
+            | Self::UpArrow
+            | Self::Help
+            | Self::Pin
+            | Self::Person
+            | Self::ArrowCD => crate::CursorShapeMacOS::Arrow,
+            Self::IBeam => crate::CursorShapeMacOS::IBeam,
+            Self::Wait => crate::CursorShapeMacOS::OpenHand,
+            Self::Cross => crate::CursorShapeMacOS::Crosshair,
+            Self::SizeNWSE | Self::SizeNESW | Self::SizeAll => {
+                crate::CursorShapeMacOS::ResizeLeftRight
+            }
+            Self::SizeWE => crate::CursorShapeMacOS::ResizeLeftRight,
+            Self::SizeNS => crate::CursorShapeMacOS::ResizeUpDown,
+            Self::No => crate::CursorShapeMacOS::OperationNotAllowed,
+            Self::Hand => crate::CursorShapeMacOS::PointingHand,
+            Self::Pen => crate::CursorShapeMacOS::Crosshair,
+            Self::ScrollNS
+            | Self::ScrollWE
+            | Self::ScrollNSEW
+            | Self::ScrollN
+            | Self::ScrollS
+            | Self::ScrollW
+            | Self::ScrollE
+            | Self::ScrollNW
+            | Self::ScrollNE
+            | Self::ScrollSW
+            | Self::ScrollSE => crate::CursorShapeMacOS::OpenHand,
+        }
+    }
+
+    pub fn to_macos_tahoe(self) -> crate::CursorShapeMacOS {
+        match self {
+            Self::Arrow
+            | Self::AppStarting
+            | Self::UpArrow
+            | Self::Help
+            | Self::Pin
+            | Self::Person
+            | Self::ArrowCD => crate::CursorShapeMacOS::TahoeArrow,
+            Self::IBeam => crate::CursorShapeMacOS::TahoeIBeam,
+            Self::Wait => crate::CursorShapeMacOS::TahoeOpenHand,
+            Self::Cross => crate::CursorShapeMacOS::TahoeCrosshair,
+            Self::SizeNWSE | Self::SizeNESW | Self::SizeAll => {
+                crate::CursorShapeMacOS::TahoeResizeLeftRight
+            }
+            Self::SizeWE => crate::CursorShapeMacOS::TahoeResizeLeftRight,
+            Self::SizeNS => crate::CursorShapeMacOS::TahoeResizeUpDown,
+            Self::No => crate::CursorShapeMacOS::TahoeOperationNotAllowed,
+            Self::Hand => crate::CursorShapeMacOS::TahoePointingHand,
+            Self::Pen => crate::CursorShapeMacOS::TahoeCrosshair,
+            Self::ScrollNS
+            | Self::ScrollWE
+            | Self::ScrollNSEW
+            | Self::ScrollN
+            | Self::ScrollS
+            | Self::ScrollW
+            | Self::ScrollE
+            | Self::ScrollNW
+            | Self::ScrollNE
+            | Self::ScrollSW
+            | Self::ScrollSE => crate::CursorShapeMacOS::TahoeOpenHand,
+        }
+    }
+
     pub fn resolve(&self) -> Option<ResolvedCursor> {
         Some(match self {
             Self::Arrow => ResolvedCursor {

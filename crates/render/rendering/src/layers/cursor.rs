@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use bytemuck::{Pod, Zeroable};
+use cap_cursor_info::CursorTheme;
 use cap_project::*;
 use image::GenericImageView;
 use tracing::error;
@@ -37,6 +38,7 @@ pub struct CursorLayer {
     circle_cursor: Option<CursorTexture>,
     prev_is_svg_assets_enabled: Option<bool>,
     prev_cursor_type: Option<CursorType>,
+    prev_cursor_theme: Option<CursorTheme>,
 }
 
 struct Statics {
@@ -196,6 +198,7 @@ impl CursorLayer {
             circle_cursor: None,
             prev_is_svg_assets_enabled: None,
             prev_cursor_type: None,
+            prev_cursor_theme: None,
         }
     }
 
@@ -342,10 +345,16 @@ impl CursorLayer {
         }
 
         let cursor_type = uniforms.project.cursor.cursor_type().clone();
+        let cursor_theme = uniforms.project.cursor.cursor_theme();
 
         if self.prev_cursor_type.as_ref() != Some(&cursor_type) {
             self.prev_cursor_type = Some(cursor_type.clone());
             self.circle_cursor = None;
+        }
+
+        if self.prev_cursor_theme != Some(cursor_theme) {
+            self.prev_cursor_theme = Some(cursor_theme);
+            self.cursors.drain();
         }
 
         if self.prev_is_svg_assets_enabled != Some(uniforms.project.cursor.use_svg) {
@@ -380,7 +389,9 @@ impl CursorLayer {
 
                 if let Some(cursor_shape) = cursor_shape
                     && uniforms.project.cursor.use_svg
-                    && let Some(info) = cursor_shape.resolve()
+                    && let Some(info) = cursor_shape
+                        .with_theme(uniforms.project.cursor.cursor_theme())
+                        .resolve()
                 {
                     loaded_cursor =
                         CursorTexture::prepare_svg(constants, info.raw, info.hotspot.into())

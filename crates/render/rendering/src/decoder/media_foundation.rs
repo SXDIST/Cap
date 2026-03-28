@@ -219,6 +219,7 @@ impl MFDecoder {
 
             let mut cache = BTreeMap::<u32, CachedFrame>::new();
             let mut last_decoded_frame: Option<u32> = None;
+            let mut first_pts_100ns: Option<i64> = None;
             let mut health = DecoderHealthMonitor::new();
 
             let init_result = DecoderInitResult {
@@ -360,7 +361,9 @@ impl MFDecoder {
                     match decoder.read_sample() {
                         Ok(Some(mf_frame)) => {
                             let decode_time = decode_start.elapsed();
-                            let frame_number = pts_100ns_to_frame(mf_frame.pts, fps);
+                            let base_pts = *first_pts_100ns.get_or_insert(mf_frame.pts);
+                            let normalized_pts = mf_frame.pts.saturating_sub(base_pts);
+                            let frame_number = pts_100ns_to_frame(normalized_pts, fps);
 
                             let has_valid_zero_copy_handles = {
                                 let null_ptr = std::ptr::null_mut();

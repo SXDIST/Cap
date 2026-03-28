@@ -239,7 +239,7 @@ impl RecordingSegmentDecoders {
         } = segment;
 
         let latest_start_time = match &meta {
-            StudioRecordingMeta::SingleSegment { .. } => None,
+            StudioRecordingMeta::SingleSegment { segment } => segment.latest_start_time(),
             StudioRecordingMeta::MultipleSegments { inner, .. } => {
                 inner.segments[segment_i].latest_start_time()
             }
@@ -263,7 +263,10 @@ impl RecordingSegmentDecoders {
         };
 
         let screen_offset = match &meta {
-            StudioRecordingMeta::SingleSegment { .. } => 0.0,
+            StudioRecordingMeta::SingleSegment { segment } => latest_start_time
+                .zip(segment.display.start_time)
+                .map(|(latest_start_time, display_time)| latest_start_time - display_time)
+                .unwrap_or(0.0),
             StudioRecordingMeta::MultipleSegments { inner, .. } => {
                 let segment = &inner.segments[segment_i];
 
@@ -275,7 +278,10 @@ impl RecordingSegmentDecoders {
         };
 
         let camera_offset = match &meta {
-            StudioRecordingMeta::SingleSegment { .. } => 0.0,
+            StudioRecordingMeta::SingleSegment { segment } => latest_start_time
+                .zip(segment.camera.as_ref().and_then(|camera| camera.start_time))
+                .map(|(latest_start_time, start_time)| latest_start_time - start_time)
+                .unwrap_or(0.0),
             StudioRecordingMeta::MultipleSegments { inner, .. } => {
                 let segment = &inner.segments[segment_i];
 
