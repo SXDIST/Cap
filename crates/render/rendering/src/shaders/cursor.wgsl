@@ -7,7 +7,8 @@ struct Uniforms {
     position_size: vec4<f32>,
     output_size: vec4<f32>,
     screen_bounds: vec4<f32>,
-    motion_vector_strength: vec4<f32>,
+    motion_vector_opacity: vec4<f32>,
+    blur_params: vec4<f32>,
     rotation_params: vec4<f32>,
 };
 
@@ -74,9 +75,11 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let motion_vec = uniforms.motion_vector_strength.xy;
-    let blur_strength = uniforms.motion_vector_strength.z;
-    let opacity = uniforms.motion_vector_strength.w;
+    let motion_vec = uniforms.motion_vector_opacity.xy;
+    let opacity = uniforms.motion_vector_opacity.z;
+    let blur_strength = uniforms.blur_params.x;
+    let sample_count = u32(clamp(uniforms.blur_params.y, 1.0, 31.0));
+    let trail_scale = uniforms.blur_params.z;
 
     let motion_len = length(motion_vec);
     if (motion_len < 0.5 || blur_strength < 0.001) {
@@ -84,20 +87,23 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     }
 
     let cursor_size = uniforms.position_size.zw;
-    let velocity_uv = motion_vec / cursor_size;
+    let velocity_uv = (motion_vec * trail_scale) / cursor_size;
     let vel_len = length(velocity_uv);
 
     if (vel_len < 0.005) {
         return textureSample(t_cursor, s_cursor, input.uv) * opacity;
     }
 
-    let kernel_size = 21;
-    let k = kernel_size - 1;
-    let offset_base = -vel_len / 2.0 / vel_len - 0.5;
+    let kernel_size = i32(sample_count);
+    let k = max(kernel_size - 1, 1);
+    let offset_base = -0.5;
 
     var color = textureSample(t_cursor, s_cursor, input.uv);
 
-    for (var i = 0; i < 20; i++) {
+    for (var i = 1; i < 31; i++) {
+        if (i >= kernel_size) {
+            break;
+        }
         let bias = velocity_uv * (f32(i) / f32(k) + offset_base);
         let sample_uv = input.uv + bias;
         color += textureSample(t_cursor, s_cursor, sample_uv);

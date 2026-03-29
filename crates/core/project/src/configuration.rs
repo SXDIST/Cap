@@ -509,7 +509,14 @@ pub struct CursorConfiguration {
     pub mass: f32,
     pub friction: f32,
     pub raw: bool,
+    #[serde(default = "CursorConfiguration::default_motion_blur_amount")]
     pub motion_blur: f32,
+    #[serde(default = "CursorConfiguration::default_motion_blur_enabled")]
+    pub motion_blur_enabled: bool,
+    #[serde(default = "CursorConfiguration::default_motion_blur_samples")]
+    pub motion_blur_samples: u32,
+    #[serde(default = "CursorConfiguration::default_motion_blur_trail")]
+    pub motion_blur_trail: f32,
     pub use_svg: bool,
     #[serde(default = "CursorConfiguration::default_rotation_amount")]
     pub rotation_amount: f32,
@@ -536,7 +543,10 @@ impl Default for CursorConfiguration {
             mass: 3.0,
             friction: 70.0,
             raw: false,
-            motion_blur: 0.3,
+            motion_blur: Self::default_motion_blur_amount(),
+            motion_blur_enabled: Self::default_motion_blur_enabled(),
+            motion_blur_samples: Self::default_motion_blur_samples(),
+            motion_blur_trail: Self::default_motion_blur_trail(),
             use_svg: true,
             rotation_amount: Self::default_rotation_amount(),
             base_rotation: 0.0,
@@ -558,6 +568,22 @@ impl CursorConfiguration {
         2.0
     }
 
+    fn default_motion_blur_amount() -> f32 {
+        0.3
+    }
+
+    fn default_motion_blur_enabled() -> bool {
+        true
+    }
+
+    fn default_motion_blur_samples() -> u32 {
+        21
+    }
+
+    fn default_motion_blur_trail() -> f32 {
+        1.0
+    }
+
     fn default_rotation_amount() -> f32 {
         0.15
     }
@@ -572,6 +598,22 @@ impl CursorConfiguration {
 
     pub fn click_spring_config(&self) -> ClickSpringConfig {
         self.click_spring.unwrap_or_default()
+    }
+
+    pub fn motion_blur_amount(&self) -> f32 {
+        if self.motion_blur_enabled {
+            self.motion_blur.clamp(0.0, 1.0)
+        } else {
+            0.0
+        }
+    }
+
+    pub fn motion_blur_samples(&self) -> u32 {
+        self.motion_blur_samples.clamp(1, 31) | 1
+    }
+
+    pub fn motion_blur_trail(&self) -> f32 {
+        self.motion_blur_trail.clamp(0.25, 2.0)
     }
 }
 
@@ -1281,3 +1323,41 @@ pub const FAST_SMOOTHING_SAMPLES: usize = 10;
 pub const SLOW_VELOCITY_THRESHOLD: f64 = 0.003;
 pub const REGULAR_VELOCITY_THRESHOLD: f64 = 0.008;
 pub const FAST_VELOCITY_THRESHOLD: f64 = 0.015;
+
+#[cfg(test)]
+mod tests {
+    use super::CursorConfiguration;
+
+    #[test]
+    fn cursor_motion_blur_defaults_preserve_existing_behavior() {
+        let config = CursorConfiguration::default();
+
+        assert_eq!(config.motion_blur_amount(), 0.3);
+        assert_eq!(config.motion_blur_samples(), 21);
+        assert_eq!(config.motion_blur_trail(), 1.0);
+    }
+
+    #[test]
+    fn cursor_motion_blur_backfills_new_fields_for_legacy_projects() {
+        let config: CursorConfiguration = serde_json::from_value(serde_json::json!({
+            "hide": false,
+            "hideWhenIdle": false,
+            "hideWhenIdleDelay": 2.0,
+            "size": 150,
+            "type": "auto",
+            "animationStyle": "mellow",
+            "tension": 470.0,
+            "mass": 3.0,
+            "friction": 70.0,
+            "raw": false,
+            "motionBlur": 0.6,
+            "useSvg": true
+        }))
+        .unwrap();
+
+        assert!(config.motion_blur_enabled);
+        assert_eq!(config.motion_blur_amount(), 0.6);
+        assert_eq!(config.motion_blur_samples(), 21);
+        assert_eq!(config.motion_blur_trail(), 1.0);
+    }
+}

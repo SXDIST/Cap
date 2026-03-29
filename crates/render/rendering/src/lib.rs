@@ -1496,6 +1496,8 @@ pub struct ProjectUniforms {
     pub resolution_base: XY<u32>,
     pub display_parent_motion_px: XY<f32>,
     pub motion_blur_amount: f32,
+    pub cursor_motion_blur_samples: u32,
+    pub cursor_motion_blur_trail: f32,
     pub masks: Vec<PreparedMask>,
     pub texts: Vec<PreparedText>,
 }
@@ -2236,7 +2238,9 @@ impl ProjectUniforms {
             prev_recording_time
         };
 
-        let cursor_motion_blur = project.cursor.motion_blur.clamp(0.0, 1.0);
+        let cursor_motion_blur = project.cursor.motion_blur_amount();
+        let cursor_motion_blur_samples = project.cursor.motion_blur_samples();
+        let cursor_motion_blur_trail = project.cursor.motion_blur_trail();
         let screen_motion_blur = project.screen_motion_blur.clamp(0.0, 1.0);
         let has_previous = frame_number > 0;
         let normalized_screen_motion = normalized_motion_amount(screen_motion_blur, fps_f32);
@@ -2748,6 +2752,8 @@ impl ProjectUniforms {
             prev_cursor: prev_interpolated_cursor,
             display_parent_motion_px: display_motion_parent,
             motion_blur_amount: cursor_motion_blur,
+            cursor_motion_blur_samples,
+            cursor_motion_blur_trail,
             masks,
             texts,
         }

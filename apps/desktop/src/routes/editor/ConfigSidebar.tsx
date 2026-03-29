@@ -221,11 +221,44 @@ type CursorPresetValues = {
 	friction: number;
 };
 
+type CursorMotionBlurPresetValues = {
+	strength: number;
+	samples: number;
+	trail: number;
+};
+
+type CursorMotionBlurPreset =
+	| "subtle"
+	| "balanced"
+	| "smooth"
+	| "action"
+	| "custom";
+
+type CursorMotionBlurPresetOption = {
+	value: CursorMotionBlurPreset;
+	label: string;
+	description: string;
+	preset?: CursorMotionBlurPresetValues;
+};
+
 type CursorThemeValue = "recorded" | "windows" | "macos" | "macosTahoe";
 
-type CursorProjectConfig = CursorConfiguration & { theme?: CursorThemeValue };
+type CursorProjectConfig = CursorConfiguration & {
+	theme?: CursorThemeValue;
+	motionBlurEnabled?: boolean;
+	motionBlurSamples?: number;
+	motionBlurTrail?: number;
+};
 
 const DEFAULT_CURSOR_MOTION_BLUR = 0.3;
+const DEFAULT_CURSOR_MOTION_BLUR_SAMPLES = 21;
+const DEFAULT_CURSOR_MOTION_BLUR_TRAIL = 1;
+
+const CURSOR_MOTION_BLUR_PRESET_TOLERANCE = {
+	strength: 0.02,
+	samples: 0,
+	trail: 0.03,
+} as const;
 
 const CURSOR_TYPE_OPTIONS = [
 	{
@@ -300,6 +333,38 @@ const CURSOR_ANIMATION_STYLE_OPTIONS = [
 	preset?: CursorPresetValues;
 }>;
 
+const CURSOR_MOTION_BLUR_PRESET_OPTIONS = [
+	{
+		value: "subtle",
+		label: "Subtle",
+		description: "Clean, restrained blur for product demos and UI walkthroughs.",
+		preset: { strength: 0.18, samples: 9, trail: 0.65 },
+	},
+	{
+		value: "balanced",
+		label: "Balanced",
+		description: "Default-looking cinematic trail that works well in most edits.",
+		preset: { strength: 0.32, samples: 21, trail: 1.0 },
+	},
+	{
+		value: "smooth",
+		label: "Smooth",
+		description: "Longer, softer trail for polished tutorial and explainer content.",
+		preset: { strength: 0.45, samples: 25, trail: 1.35 },
+	},
+	{
+		value: "action",
+		label: "Action",
+		description: "Sharper, more visible blur tuned for quick cursor movement.",
+		preset: { strength: 0.62, samples: 15, trail: 1.55 },
+	},
+	{
+		value: "custom",
+		label: "Custom",
+		description: "Tune strength, trail length, and samples manually.",
+	},
+] satisfies CursorMotionBlurPresetOption[];
+
 const CURSOR_PRESET_TOLERANCE = {
 	tension: 1,
 	mass: 0.05,
@@ -318,6 +383,23 @@ const findCursorPreset = (
 				CURSOR_PRESET_TOLERANCE.mass &&
 			Math.abs(option.preset.friction - values.friction) <=
 				CURSOR_PRESET_TOLERANCE.friction,
+	);
+
+	return preset?.value ?? null;
+};
+
+const findCursorMotionBlurPreset = (
+	values: CursorMotionBlurPresetValues,
+): CursorMotionBlurPreset | null => {
+	const preset = CURSOR_MOTION_BLUR_PRESET_OPTIONS.find(
+		(option) =>
+			option.preset &&
+			Math.abs(option.preset.strength - values.strength) <=
+				CURSOR_MOTION_BLUR_PRESET_TOLERANCE.strength &&
+			Math.abs(option.preset.samples - values.samples) <=
+				CURSOR_MOTION_BLUR_PRESET_TOLERANCE.samples &&
+			Math.abs(option.preset.trail - values.trail) <=
+				CURSOR_MOTION_BLUR_PRESET_TOLERANCE.trail,
 	);
 
 	return preset?.value ?? null;
@@ -349,12 +431,59 @@ export function ConfigSidebar() {
 		((project.cursor as CursorProjectConfig).theme ??
 			"recorded") as CursorThemeValue;
 
+	const cursorMotionBlurConfig = () => project.cursor as CursorProjectConfig;
+
+	const cursorMotionBlurEnabled = () =>
+		(cursorMotionBlurConfig().motionBlurEnabled ??
+			(project.cursor.motionBlur ?? DEFAULT_CURSOR_MOTION_BLUR) > 0) as boolean;
+
+	const cursorMotionBlurSamples = () =>
+		(cursorMotionBlurConfig().motionBlurSamples ??
+			DEFAULT_CURSOR_MOTION_BLUR_SAMPLES) as number;
+
+	const cursorMotionBlurTrail = () =>
+		(cursorMotionBlurConfig().motionBlurTrail ??
+			DEFAULT_CURSOR_MOTION_BLUR_TRAIL) as number;
+
+	const cursorMotionBlurPreset = () =>
+		findCursorMotionBlurPreset({
+			strength: project.cursor.motionBlur ?? DEFAULT_CURSOR_MOTION_BLUR,
+			samples: cursorMotionBlurSamples(),
+			trail: cursorMotionBlurTrail(),
+		}) ?? "custom";
+
 	const cursorIdleDelay = () =>
 		((project.cursor as { hideWhenIdleDelay?: number }).hideWhenIdleDelay ??
 			2) as number;
 
 	const clampIdleDelay = (value: number) =>
 		Math.round(Math.min(5, Math.max(0.5, value)) * 10) / 10;
+
+	const clampMotionBlurSamples = (value: number) => {
+		const rounded = Math.round(value);
+		const clamped = Math.min(31, Math.max(1, rounded));
+		return clamped % 2 === 0 ? Math.max(1, clamped - 1) : clamped;
+	};
+
+	const clampMotionBlurTrail = (value: number) =>
+		Math.round(Math.min(2, Math.max(0.25, value)) * 100) / 100;
+
+	const applyCursorMotionBlurPreset = (
+		presetValue: CursorMotionBlurPreset,
+	) => {
+		const option = CURSOR_MOTION_BLUR_PRESET_OPTIONS.find(
+			(item) => item.value === presetValue,
+		);
+
+		if (!option?.preset) return;
+
+		batch(() => {
+			setProject("cursor", "motionBlurEnabled" as any, true);
+			setProject("cursor", "motionBlur" as any, option.preset.strength);
+			setProject("cursor", "motionBlurSamples" as any, option.preset.samples);
+			setProject("cursor", "motionBlurTrail" as any, option.preset.trail);
+		});
+	};
 
 	type CursorPhysicsKey = "tension" | "mass" | "friction";
 
@@ -824,6 +953,119 @@ export function ConfigSidebar() {
 											minValue={0.1}
 											maxValue={10}
 											step={0.01}
+										/>
+									</Field>
+								</div>
+							</KCollapsible.Content>
+						</KCollapsible>
+						<KCollapsible open={cursorMotionBlurEnabled()}>
+							<Field
+								name="Motion Blur"
+								icon={<IconLucideWind class="size-4" />}
+								value={
+									<Toggle
+										checked={cursorMotionBlurEnabled()}
+										onChange={(value) => {
+											batch(() => {
+												setProject("cursor", "motionBlurEnabled" as any, value);
+												if (
+													value &&
+													(project.cursor.motionBlur ?? 0) <= 0
+												) {
+													setProject(
+														"cursor",
+														"motionBlur" as any,
+														DEFAULT_CURSOR_MOTION_BLUR,
+													);
+												}
+											});
+										}}
+									/>
+								}
+							/>
+							<KCollapsible.Content class="overflow-hidden border-b opacity-0 transition-opacity border-gray-3 animate-collapsible-up ui-expanded:animate-collapsible-down ui-expanded:opacity-100">
+								<div class="flex flex-col gap-4 pt-4 pb-6">
+									<Field name="Preset">
+										<div class="flex flex-col gap-2">
+											{CURSOR_MOTION_BLUR_PRESET_OPTIONS.map((option) => {
+												const isActive =
+													cursorMotionBlurPreset() === option.value;
+
+												return (
+													<button
+														type="button"
+														onClick={() =>
+															applyCursorMotionBlurPreset(option.value)
+														}
+														disabled={!option.preset}
+														class={cx(
+															"flex w-full items-start gap-3 rounded-lg border border-gray-3 p-3 text-left transition-colors disabled:cursor-default disabled:opacity-100",
+															isActive && "border-blue-8 bg-blue-3/40",
+														)}
+													>
+														<span
+															class={cx(
+																"mt-1 size-4 rounded-full border border-gray-7",
+																isActive && "border-blue-9 bg-blue-9",
+															)}
+														/>
+														<div class="flex flex-col text-left">
+															<span class="text-sm font-medium text-gray-12">
+																{option.label}
+															</span>
+															<span class="text-xs text-gray-11">
+																{option.description}
+															</span>
+														</div>
+													</button>
+												);
+											})}
+										</div>
+									</Field>
+									<Field name="Strength">
+										<Slider
+											value={[project.cursor.motionBlur ?? DEFAULT_CURSOR_MOTION_BLUR]}
+											onChange={(v) =>
+												setProject("cursor", "motionBlur" as any, v[0])
+											}
+											minValue={0}
+											maxValue={1}
+											step={0.01}
+											formatTooltip={(value) => `${Math.round(value * 100)}%`}
+										/>
+									</Field>
+									<Field name="Trail Length">
+										<Slider
+											value={[cursorMotionBlurTrail()]}
+											onChange={(v) =>
+												setProject(
+													"cursor",
+													"motionBlurTrail" as any,
+													clampMotionBlurTrail(v[0]),
+												)
+											}
+											minValue={0.25}
+											maxValue={2}
+											step={0.01}
+											formatTooltip={(value) => `${value.toFixed(2)}x`}
+										/>
+									</Field>
+									<Field name="Sample Count">
+										<Slider
+											value={[cursorMotionBlurSamples()]}
+											onChange={(v) =>
+												setProject(
+													"cursor",
+													"motionBlurSamples" as any,
+													clampMotionBlurSamples(v[0]),
+												)
+											}
+											minValue={1}
+											maxValue={31}
+											step={2}
+											formatTooltip={(value) =>
+												`${clampMotionBlurSamples(value)} samples`
+											}
 										/>
 									</Field>
 								</div>
@@ -2114,16 +2356,6 @@ function BackgroundConfig(props: { scrollRef: HTMLDivElement }) {
 						}
 					/>
 				</div>
-			</Field>
-			<Field name="Motion Blur" icon={<IconLucideWind class="size-4" />}>
-				<Slider
-					value={[project.cursor.motionBlur ?? DEFAULT_CURSOR_MOTION_BLUR]}
-					onChange={(v) => setProject("cursor", "motionBlur" as any, v[0])}
-					minValue={0}
-					maxValue={1}
-					step={0.01}
-					formatTooltip={(value) => `${Math.round(value * 100)}%`}
-				/>
 			</Field>
 			<Field
 				name="Border"

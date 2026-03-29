@@ -505,11 +505,12 @@ impl CursorLayer {
                 0.0,
             ],
             screen_bounds: uniforms.display.target_bounds,
-            motion_vector_strength: [
-                scaled_motion.x,
-                scaled_motion.y,
+            motion_vector_opacity: [scaled_motion.x, scaled_motion.y, cursor_opacity, 0.0],
+            blur_params: [
                 effective_strength,
-                cursor_opacity,
+                uniforms.cursor_motion_blur_samples as f32,
+                uniforms.cursor_motion_blur_trail,
+                0.0,
             ],
             rotation_params: [
                 0.0,
@@ -573,7 +574,8 @@ pub struct CursorUniforms {
     position_size: [f32; 4],
     output_size: [f32; 4],
     screen_bounds: [f32; 4],
-    motion_vector_strength: [f32; 4],
+    motion_vector_opacity: [f32; 4],
+    blur_params: [f32; 4],
     rotation_params: [f32; 4],
 }
 
