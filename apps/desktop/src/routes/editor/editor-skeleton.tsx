@@ -144,16 +144,16 @@ function PlayerSkeleton() {
 
 function SidebarSkeleton() {
 	return (
-		<div class="flex flex-col min-h-0 shrink-0 flex-1 max-w-[26rem] overflow-hidden rounded-xl z-10 bg-gray-1 dark:bg-gray-2 border border-gray-3">
-			<div class="flex overflow-hidden sticky top-0 z-[60] flex-row items-center justify-center gap-4 h-16 border-b border-gray-3 shrink-0 bg-gray-1 dark:bg-gray-2">
-				<SkeletonPulse class="size-9 rounded-lg" />
-				<SkeletonPulse class="size-9 rounded-lg" />
-				<SkeletonPulse class="size-9 rounded-lg" />
-				<SkeletonPulse class="size-9 rounded-lg" />
-				<SkeletonPulse class="size-9 rounded-lg" />
-				<SkeletonPulse class="size-9 rounded-lg" />
+		<div class="flex flex-row min-h-0 shrink-0 flex-1 max-w-[26rem] overflow-hidden rounded-xl z-10 bg-gray-1 dark:bg-gray-2 border border-gray-3">
+			<div class="flex overflow-hidden z-[60] flex-col items-center gap-3 w-[4.5rem] py-4 border-r border-gray-3 shrink-0 bg-gray-1 dark:bg-gray-2">
+				<SkeletonPulse class="size-10 rounded-xl" />
+				<SkeletonPulse class="size-10 rounded-xl" />
+				<SkeletonPulse class="size-10 rounded-xl" />
+				<SkeletonPulse class="size-10 rounded-xl" />
+				<SkeletonPulse class="size-10 rounded-xl" />
+				<SkeletonPulse class="size-10 rounded-xl" />
 			</div>
-			<div class="flex-1 p-4 space-y-4 overflow-hidden">
+			<div class="flex-1 p-4 space-y-4 overflow-hidden min-w-0">
 				<SkeletonPulse class="h-4 w-20" />
 				<div class="flex gap-2">
 					<SkeletonPulse class="h-16 flex-1 rounded-lg" />
