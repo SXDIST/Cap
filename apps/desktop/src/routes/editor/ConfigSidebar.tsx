@@ -25,6 +25,7 @@ import {
 	createSignal,
 	For,
 	Index,
+	type JSXElement,
 	on,
 	onMount,
 	Show,
@@ -241,6 +242,20 @@ type CursorMotionBlurPresetOption = {
 	preset?: CursorMotionBlurPresetValues;
 };
 
+type ChoiceCardOption = {
+	value: string;
+	label: string;
+	description: string;
+	disabled?: boolean;
+};
+
+type CursorPreviewOption = {
+	value: string;
+	label: string;
+	description: string;
+	preview: JSXElement;
+};
+
 type CursorThemeValue = "recorded" | "windows" | "macos" | "macosTahoe";
 
 type CursorProjectConfig = CursorConfiguration & {
@@ -273,6 +288,50 @@ const CURSOR_TYPE_OPTIONS = [
 	},
 ];
 
+const CURSOR_TYPE_PREVIEW_OPTIONS: CursorPreviewOption[] = [
+	{
+		value: "auto",
+		label: "Auto",
+		description: "Uses the actual cursor from your recording.",
+		preview: (
+			<div class="relative flex h-[4.9rem] items-center overflow-hidden rounded-[1rem] border border-gray-3 bg-[radial-gradient(circle_at_top_left,rgba(55,136,255,0.35),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] px-3.5">
+				<div class="absolute inset-x-4 bottom-2 h-5 rounded-full bg-black/20 blur-md" />
+				<div class="relative flex items-center gap-3">
+					<div class="flex size-11 items-center justify-center rounded-[1.1rem] bg-gray-1/80 shadow-[0_12px_24px_rgba(0,0,0,0.2)]">
+						<IconCapCursor class="size-5.5 text-gray-12" />
+					</div>
+					<div class="flex flex-col">
+						<span class="text-[10px] uppercase tracking-[0.14em] text-blue-10">
+							Recorded
+						</span>
+						<span class="text-sm font-medium text-gray-12">
+							Match capture
+						</span>
+					</div>
+				</div>
+			</div>
+		),
+	},
+	{
+		value: "circle",
+		label: "Circle",
+		description: "A touch-style circle cursor like mobile simulators.",
+		preview: (
+			<div class="relative flex h-[4.9rem] items-center overflow-hidden rounded-[1rem] border border-gray-3 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.08),transparent_40%),linear-gradient(135deg,rgba(55,136,255,0.22),rgba(255,255,255,0.02))] px-3.5">
+				<div class="absolute right-4 top-3.5 h-9 w-9 rounded-full border-2 border-white/70 bg-white/10 shadow-[0_0_0_8px_rgba(255,255,255,0.03)]" />
+				<div class="flex flex-col">
+					<span class="text-[10px] uppercase tracking-[0.14em] text-blue-10">
+						Touch style
+					</span>
+					<span class="text-sm font-medium text-gray-12">
+						Minimal pointer
+					</span>
+				</div>
+			</div>
+		),
+	},
+];
+
 const CURSOR_THEME_OPTIONS = [
 	{
 		value: "recorded" as CursorThemeValue,
@@ -293,6 +352,81 @@ const CURSOR_THEME_OPTIONS = [
 		value: "macosTahoe" as CursorThemeValue,
 		label: "macOS Tahoe",
 		description: "Uses the newer Tahoe-style macOS cursor set.",
+	},
+];
+
+const CURSOR_THEME_PREVIEW_OPTIONS: CursorPreviewOption[] = [
+	{
+		value: "recorded",
+		label: "Recorded",
+		description: "Keeps the cursor family that was captured in the recording.",
+		preview: (
+			<div class="relative flex h-[4.9rem] items-center overflow-hidden rounded-[1rem] border border-gray-3 bg-[linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] px-3.5">
+				<div class="absolute inset-y-0 right-0 w-20 bg-[radial-gradient(circle_at_center,rgba(55,136,255,0.2),transparent_65%)]" />
+				<div class="relative flex items-center gap-3">
+					<div class="flex size-10 items-center justify-center rounded-[1rem] bg-gray-1/80 shadow-[0_10px_20px_rgba(0,0,0,0.18)]">
+						<IconCapCursor class="size-5 text-gray-12" />
+					</div>
+					<div class="rounded-full border border-gray-4 bg-gray-1/60 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-gray-11">
+						Native look
+					</div>
+				</div>
+			</div>
+		),
+	},
+	{
+		value: "windows",
+		label: "Windows",
+		description: "Forces the cursor to use Windows-style SVG assets.",
+		preview: (
+			<div class="relative flex h-[4.9rem] items-center overflow-hidden rounded-[1rem] border border-gray-3 bg-[linear-gradient(135deg,rgba(55,136,255,0.18),rgba(55,136,255,0.04))] px-3.5">
+				<div class="absolute right-0 top-0 h-full w-24 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),transparent)]" />
+				<div class="relative flex items-center gap-3">
+					<div class="flex size-10 items-center justify-center rounded-[1rem] bg-[#f4f8ff] text-[#0067c0] shadow-[0_10px_20px_rgba(0,0,0,0.14)]">
+						<IconCapCursorWindows class="size-5" />
+					</div>
+					<div class="rounded-full border border-blue-8/40 bg-blue-3/40 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-blue-11">
+						Windows UI
+					</div>
+				</div>
+			</div>
+		),
+	},
+	{
+		value: "macos",
+		label: "macOS",
+		description: "Uses the classic macOS cursor set for every supported shape.",
+		preview: (
+			<div class="relative flex h-[4.9rem] items-center overflow-hidden rounded-[1rem] border border-gray-3 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(180,180,180,0.04))] px-3.5">
+				<div class="absolute inset-y-0 right-0 w-24 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.18),transparent_70%)]" />
+				<div class="relative flex items-center gap-3">
+					<div class="flex size-10 items-center justify-center rounded-[1rem] bg-white text-black shadow-[0_10px_20px_rgba(0,0,0,0.14)]">
+						<IconCapCursorMacos class="size-5" />
+					</div>
+					<div class="rounded-full border border-gray-4 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-gray-11">
+						Classic
+					</div>
+				</div>
+			</div>
+		),
+	},
+	{
+		value: "macosTahoe",
+		label: "macOS Tahoe",
+		description: "Uses the newer Tahoe-style macOS cursor set.",
+		preview: (
+			<div class="relative flex h-[4.9rem] items-center overflow-hidden rounded-[1rem] border border-gray-3 bg-[linear-gradient(135deg,rgba(81,157,255,0.16),rgba(255,255,255,0.05))] px-3.5">
+				<div class="absolute inset-y-0 right-0 w-28 bg-[radial-gradient(circle_at_40%_50%,rgba(108,179,255,0.3),transparent_68%)]" />
+				<div class="relative flex items-center gap-3">
+					<div class="flex size-10 items-center justify-center rounded-[1rem] bg-[linear-gradient(180deg,#ffffff,#dbeafe)] text-[#0f172a] shadow-[0_10px_20px_rgba(0,0,0,0.14)]">
+						<IconCapCursorMacos class="size-5" />
+					</div>
+					<div class="rounded-full border border-sky-7/50 bg-sky-3/40 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-sky-11">
+						Tahoe
+					</div>
+				</div>
+			</div>
+		),
 	},
 ];
 
@@ -411,10 +545,217 @@ const TAB_IDS = {
 	transcript: "transcript",
 	audio: "audio",
 	cursor: "cursor",
+	animations: "animations",
 	keyboard: "keyboard",
 	hotkeys: "hotkeys",
 	captions: "captions",
 } as const;
+
+function ChoiceCardRadioGroup(props: {
+	value: string;
+	onChange: (value: string) => void;
+	options: ChoiceCardOption[];
+}) {
+	return (
+		<RadioGroup
+			class="flex flex-col gap-2"
+			value={props.value}
+			onChange={props.onChange}
+		>
+			{props.options.map((option) => (
+				<RadioGroup.Item
+					value={option.value}
+					disabled={option.disabled}
+					class="rounded-lg border border-gray-3 transition-colors ui-checked:border-blue-8 ui-checked:bg-blue-3/40 disabled:opacity-100"
+				>
+					<RadioGroup.ItemInput class="sr-only" />
+					<RadioGroup.ItemLabel class="flex cursor-pointer items-start gap-3 p-3">
+						<RadioGroup.ItemControl class="mt-1 size-4 shrink-0 flex-none self-start rounded-full border border-gray-7 ui-checked:border-blue-9 ui-checked:bg-blue-9" />
+						<div class="flex flex-col text-left">
+							<span class="text-sm font-medium text-gray-12">
+								{option.label}
+							</span>
+							<span class="text-xs text-gray-11">{option.description}</span>
+						</div>
+					</RadioGroup.ItemLabel>
+				</RadioGroup.Item>
+			))}
+		</RadioGroup>
+	);
+}
+
+function CursorTypeSwatch(props: { value: string }) {
+	if (props.value === "circle") {
+		return (
+			<div class="relative flex h-14 w-14 items-center justify-center rounded-lg bg-[linear-gradient(135deg,rgba(55,136,255,0.16),rgba(255,255,255,0.03))]">
+				<div class="size-8 rounded-full border-2 border-white/80 bg-white/10 shadow-[0_0_0_8px_rgba(255,255,255,0.03)]" />
+			</div>
+		);
+	}
+
+	return (
+		<div class="relative flex h-14 w-14 items-center justify-center rounded-lg bg-[linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))]">
+			<IconCapCursor class="size-7 text-gray-12" />
+		</div>
+	);
+}
+
+function CursorThemeSwatch(props: { value: string }) {
+	const baseClass =
+		"relative flex h-14 w-14 items-center justify-center rounded-lg overflow-hidden";
+
+	switch (props.value) {
+		case "windows":
+			return (
+				<div class={`${baseClass} bg-[linear-gradient(135deg,rgba(55,136,255,0.2),rgba(255,255,255,0.03))]`}>
+					<div class="flex size-8 items-center justify-center rounded-[0.9rem] bg-[#f4f8ff] text-[#0067c0] shadow-[0_10px_18px_rgba(0,0,0,0.14)]">
+						<IconCapCursorWindows class="size-4.5" />
+					</div>
+				</div>
+			);
+		case "macos":
+			return (
+				<div class={`${baseClass} bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(180,180,180,0.04))]`}>
+					<div class="flex size-8 items-center justify-center rounded-[0.9rem] bg-white text-black shadow-[0_10px_18px_rgba(0,0,0,0.14)]">
+						<IconCapCursorMacos class="size-4.5" />
+					</div>
+				</div>
+			);
+		case "macosTahoe":
+			return (
+				<div class={`${baseClass} bg-[linear-gradient(135deg,rgba(81,157,255,0.18),rgba(255,255,255,0.04))]`}>
+					<div class="flex size-8 items-center justify-center rounded-[0.9rem] bg-[linear-gradient(180deg,#ffffff,#dbeafe)] text-[#0f172a] shadow-[0_10px_18px_rgba(0,0,0,0.14)]">
+						<IconCapCursorMacos class="size-4.5" />
+					</div>
+				</div>
+			);
+		default:
+			return (
+				<div class={`${baseClass} bg-[linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))]`}>
+					<IconCapCursor class="size-6 text-gray-12" />
+				</div>
+			);
+	}
+}
+
+function SegmentedStackRadioGroup(props: {
+	value: string;
+	onChange: (value: string) => void;
+	options: ChoiceCardOption[];
+}) {
+	return (
+		<RadioGroup
+			class="flex flex-wrap gap-2"
+			value={props.value}
+			onChange={props.onChange}
+		>
+			{props.options.map((option) => (
+				<RadioGroup.Item value={option.value} disabled={option.disabled}>
+					<RadioGroup.ItemInput class="sr-only" />
+					<RadioGroup.ItemControl
+						class={cx(
+							"inline-flex min-h-9 items-center rounded-xl border px-3 py-1.5 text-sm font-medium transition-colors",
+							"border-gray-3 bg-gray-2/55 text-gray-11 hover:border-gray-4 hover:bg-gray-3/55 hover:text-gray-12",
+							"ui-checked:border-blue-8 ui-checked:bg-blue-3/35 ui-checked:text-gray-12 ui-checked:shadow-[0_0_0_1px_rgba(37,99,235,0.16)_inset]",
+							"disabled:opacity-50",
+						)}
+					>
+						{option.label}
+					</RadioGroup.ItemControl>
+				</RadioGroup.Item>
+			))}
+		</RadioGroup>
+	);
+}
+
+function CursorPreviewTypeGroup(props: {
+	value: string;
+	onChange: (value: string) => void;
+	options: CursorPreviewOption[];
+}) {
+	const activeOption = () =>
+		props.options.find((option) => option.value === props.value) ?? props.options[0];
+
+	return (
+		<div class="flex flex-col gap-3">
+			<div class="grid grid-cols-2 gap-3">
+				{props.options.map((option) => {
+					const isActive = props.value === option.value;
+
+					return (
+						<button
+							type="button"
+							onClick={() => props.onChange(option.value)}
+							class={cx(
+								"group flex aspect-square items-center justify-center rounded-xl border transition-all",
+								isActive
+									? "border-blue-8 bg-blue-3/18 shadow-[0_0_0_1px_rgba(37,99,235,0.18)_inset]"
+									: "border-gray-3 bg-gray-2/35 hover:border-gray-4 hover:bg-gray-2/65",
+							)}
+							aria-label={option.label}
+						>
+							<CursorTypeSwatch value={option.value} />
+						</button>
+					);
+				})}
+			</div>
+			<div class="rounded-xl border border-gray-3 bg-gray-2/25 px-3 py-2.5">
+				<div class="flex items-center justify-between gap-3">
+					<div class="text-sm font-medium text-gray-12">
+						{activeOption().label}
+					</div>
+					<div class="rounded-full bg-blue-9 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white">
+						Selected
+					</div>
+				</div>
+				<div class="pt-1 text-xs leading-5 text-gray-11">
+					{activeOption().description}
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function CursorPreviewThemeGroup(props: {
+	value: string;
+	onChange: (value: string) => void;
+	options: CursorPreviewOption[];
+}) {
+	return (
+		<div class="grid grid-cols-2 gap-3">
+			{props.options.map((option) => {
+				const isActive = props.value === option.value;
+
+				return (
+					<button
+						type="button"
+						onClick={() => props.onChange(option.value)}
+						class={cx(
+							"group flex aspect-square flex-col items-center justify-center gap-3 rounded-xl border p-3 text-left transition-all",
+							isActive
+								? "border-blue-8 bg-blue-3/16 shadow-[0_0_0_1px_rgba(37,99,235,0.18)_inset]"
+								: "border-gray-3 bg-gray-2/30 hover:border-gray-4 hover:bg-gray-2/55",
+						)}
+						aria-label={option.label}
+					>
+						<CursorThemeSwatch value={option.value} />
+						<div class="flex items-center justify-between gap-2 self-stretch px-0.5">
+							<span class="truncate text-sm font-medium text-gray-12">
+								{option.label}
+							</span>
+							<div
+								class={cx(
+									"size-2.5 shrink-0 rounded-full transition-colors",
+									isActive ? "bg-blue-9" : "bg-gray-6 group-hover:bg-gray-5",
+								)}
+							/>
+						</div>
+					</button>
+				);
+			})}
+		</div>
+	);
+}
 
 export function ConfigSidebar() {
 	const {
@@ -526,6 +867,7 @@ export function ConfigSidebar() {
 			| "transcript"
 			| "audio"
 			| "cursor"
+			| "animations"
 			| "keyboard"
 			| "hotkeys"
 			| "captions",
@@ -553,6 +895,13 @@ export function ConfigSidebar() {
 						{
 							id: TAB_IDS.cursor,
 							icon: IconCapCursor,
+							disabled: !(
+								meta().type === "multiple" && (meta() as any).segments[0].cursor
+							),
+						},
+						{
+							id: TAB_IDS.animations,
+							icon: IconLucideRabbit,
 							disabled: !(
 								meta().type === "multiple" && (meta() as any).segments[0].cursor
 							),
@@ -591,9 +940,9 @@ export function ConfigSidebar() {
 						>
 							<div
 								class={cx(
-									"flex justify-center relative border-transparent border z-10 items-center rounded-xl size-10 transition will-change-transform",
-									state.selectedTab !== item.id &&
-										"group-hover:border-gray-300 group-disabled:border-none",
+									"flex justify-center relative border border-transparent z-10 items-center rounded-xl size-10 transition will-change-transform",
+									"group-hover:border-gray-300 group-disabled:border-none",
+									"ui-selected:border-gray-3 ui-selected:bg-gray-3 ui-selected:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
 								)}
 							>
 								<Dynamic component={item.icon} />
@@ -601,13 +950,6 @@ export function ConfigSidebar() {
 						</KTabs.Trigger>
 					)}
 				</For>
-
-				{/** Center the indicator with the icon */}
-				<Show when={!editorState.timeline.selection}>
-					<KTabs.Indicator class="absolute top-0 left-0 w-full h-full transition-transform duration-200 ease-in-out pointer-events-none will-change-transform">
-						<div class="absolute top-1/2 left-1/2 rounded-xl transform -translate-x-1/2 -translate-y-1/2 bg-gray-3 will-change-transform size-10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]" />
-					</KTabs.Indicator>
-				</Show>
 			</KTabs.List>
 			<div
 				class="flex flex-col flex-1 min-w-0 min-h-0"
@@ -761,33 +1103,13 @@ export function ConfigSidebar() {
 					/>
 					<Show when={!project.cursor.hide}>
 						<Field name="Cursor Type" icon={<IconCapCursor />}>
-							<RadioGroup
-								class="flex flex-col gap-2"
+							<CursorPreviewTypeGroup
 								value={project.cursor.type}
 								onChange={(value) =>
 									setProject("cursor", "type", value as CursorType)
 								}
-							>
-								{CURSOR_TYPE_OPTIONS.map((option) => (
-									<RadioGroup.Item
-										value={option.value}
-										class="rounded-lg border border-gray-3 transition-colors ui-checked:border-blue-8 ui-checked:bg-blue-3/40"
-									>
-										<RadioGroup.ItemInput class="sr-only" />
-										<RadioGroup.ItemLabel class="flex cursor-pointer items-start gap-3 p-3">
-											<RadioGroup.ItemControl class="mt-1 size-4 rounded-full border border-gray-7 ui-checked:border-blue-9 ui-checked:bg-blue-9" />
-											<div class="flex flex-col text-left">
-												<span class="text-sm font-medium text-gray-12">
-													{option.label}
-												</span>
-												<span class="text-xs text-gray-11">
-													{option.description}
-												</span>
-											</div>
-										</RadioGroup.ItemLabel>
-									</RadioGroup.Item>
-								))}
-							</RadioGroup>
+								options={CURSOR_TYPE_PREVIEW_OPTIONS}
+							/>
 						</Field>
 						<Field name="Size" icon={<IconCapEnlarge />}>
 							<Slider
@@ -803,8 +1125,7 @@ export function ConfigSidebar() {
 								name="Cursor Theme"
 								icon={<IconLucidePalette class="size-4" />}
 							>
-								<RadioGroup
-									class="flex flex-col gap-2"
+								<CursorPreviewThemeGroup
 									value={cursorTheme()}
 									onChange={(value) =>
 										setProject(
@@ -813,27 +1134,8 @@ export function ConfigSidebar() {
 											value as CursorThemeValue,
 										)
 									}
-								>
-									{CURSOR_THEME_OPTIONS.map((option) => (
-										<RadioGroup.Item
-											value={option.value}
-											class="rounded-lg border border-gray-3 transition-colors ui-checked:border-blue-8 ui-checked:bg-blue-3/40"
-										>
-											<RadioGroup.ItemInput class="sr-only" />
-											<RadioGroup.ItemLabel class="flex cursor-pointer items-start gap-3 p-3">
-												<RadioGroup.ItemControl class="mt-1 size-4 rounded-full border border-gray-7 ui-checked:border-blue-9 ui-checked:bg-blue-9" />
-												<div class="flex flex-col text-left">
-													<span class="text-sm font-medium text-gray-12">
-														{option.label}
-													</span>
-													<span class="text-xs text-gray-11">
-														{option.description}
-													</span>
-												</div>
-											</RadioGroup.ItemLabel>
-										</RadioGroup.Item>
-									))}
-								</RadioGroup>
+									options={CURSOR_THEME_PREVIEW_OPTIONS}
+								/>
 							</Field>
 						</Show>
 						<Field name="Tilt" icon={<IconLucideRotate3d class="size-4" />}>
@@ -880,40 +1182,80 @@ export function ConfigSidebar() {
 							</Subfield>
 						</Show>
 						<Field
+							name="High Quality SVG Cursors"
+							icon={<IconLucideSparkles />}
+							value={
+								<Toggle
+									checked={(project.cursor as any).useSvg ?? true}
+									onChange={(value) => {
+										setProject("cursor", "useSvg" as any, value);
+									}}
+								/>
+							}
+						/>
+					</Show>
+
+					{/* <Field name="Animation Style" icon={<IconLucideRabbit />}>
+            <RadioGroup
+              defaultValue="regular"
+              value={project.cursor.animationStyle}
+              onChange={(value) => {
+                setProject(
+                  "cursor",
+                  "animationStyle",
+                  value as CursorAnimationStyle
+                );
+              }}
+              class="flex flex-col gap-2"
+              disabled
+            >
+              {(
+                Object.entries(CURSOR_ANIMATION_STYLES) as [
+                  CursorAnimationStyle,
+                  string
+                ][]
+              ).map(([value, label]) => (
+                <RadioGroup.Item value={value} class="flex items-center">
+                  <RadioGroup.ItemInput class="sr-only peer" />
+                  <RadioGroup.ItemControl
+                    class={cx(
+                      "mr-2 w-4 h-4 rounded-full border border-gray-300",
+                      "relative after:absolute after:inset-0 after:m-auto after:block after:w-2 after:h-2 after:rounded-full",
+                      "after:transition-colors after:duration-200",
+                      "peer-checked:border-blue-500 peer-checked:after:bg-blue-400",
+                      "peer-focus-visible:ring-2 peer-focus-visible:ring-blue-400/50",
+                      "peer-disabled:opacity-50"
+                    )}
+                  />
+                  <span
+                    class={cx(
+                      "text-gray-12",
+                      "peer-checked:text-gray-900",
+                      "peer-disabled:opacity-50"
+                    )}
+                  >
+                    {label}
+                  </span>
+                </RadioGroup.Item>
+              ))}
+            </RadioGroup>
+					</Field> */}
+					</KTabs.Content>
+					<KTabs.Content
+						value={TAB_IDS.animations}
+						class="flex flex-col flex-1 gap-6 p-4 min-h-0"
+					>
+						<Field
 							name="Cursor Movement Style"
 							icon={<IconLucideRabbit class="size-4" />}
 						>
-							<div class="flex flex-col gap-2">
-							{CURSOR_ANIMATION_STYLE_OPTIONS.map((option) => {
-								const isActive = project.cursor.animationStyle === option.value;
-
-								return (
-									<button
-										type="button"
-										onClick={() => applyCursorStylePreset(option.value)}
-										class={cx(
-											"flex w-full items-start gap-3 rounded-lg border border-gray-3 p-3 text-left transition-colors",
-											isActive && "border-blue-8 bg-blue-3/40",
-										)}
-									>
-										<span
-											class={cx(
-												"mt-1 size-4 rounded-full border border-gray-7",
-												isActive && "border-blue-9 bg-blue-9",
-											)}
-										/>
-										<div class="flex flex-col text-left">
-											<span class="text-sm font-medium text-gray-12">
-												{option.label}
-											</span>
-											<span class="text-xs text-gray-11">
-												{option.description}
-											</span>
-										</div>
-									</button>
-								);
-							})}
-						</div>
+							<SegmentedStackRadioGroup
+								value={project.cursor.animationStyle}
+								onChange={(value) =>
+									applyCursorStylePreset(value as CursorAnimationStyle)
+								}
+								options={CURSOR_ANIMATION_STYLE_OPTIONS}
+							/>
 						</Field>
 						<KCollapsible open={!project.cursor.raw}>
 							<Field
@@ -929,7 +1271,6 @@ export function ConfigSidebar() {
 								}
 							/>
 							<KCollapsible.Content class="overflow-hidden border-b opacity-0 transition-opacity border-gray-3 animate-collapsible-up ui-expanded:animate-collapsible-down ui-expanded:opacity-100">
-								{/* if Content has padding or margin the animation doesn't look as good */}
 								<div class="flex flex-col gap-4 pt-4 pb-6">
 									<Field name="Tension">
 										<Slider
@@ -989,41 +1330,15 @@ export function ConfigSidebar() {
 							<KCollapsible.Content class="overflow-hidden border-b opacity-0 transition-opacity border-gray-3 animate-collapsible-up ui-expanded:animate-collapsible-down ui-expanded:opacity-100">
 								<div class="flex flex-col gap-4 pt-4 pb-6">
 									<Field name="Preset">
-										<div class="flex flex-col gap-2">
-											{CURSOR_MOTION_BLUR_PRESET_OPTIONS.map((option) => {
-												const isActive =
-													cursorMotionBlurPreset() === option.value;
-
-												return (
-													<button
-														type="button"
-														onClick={() =>
-															applyCursorMotionBlurPreset(option.value)
-														}
-														disabled={!option.preset}
-														class={cx(
-															"flex w-full items-start gap-3 rounded-lg border border-gray-3 p-3 text-left transition-colors disabled:cursor-default disabled:opacity-100",
-															isActive && "border-blue-8 bg-blue-3/40",
-														)}
-													>
-														<span
-															class={cx(
-																"mt-1 size-4 rounded-full border border-gray-7",
-																isActive && "border-blue-9 bg-blue-9",
-															)}
-														/>
-														<div class="flex flex-col text-left">
-															<span class="text-sm font-medium text-gray-12">
-																{option.label}
-															</span>
-															<span class="text-xs text-gray-11">
-																{option.description}
-															</span>
-														</div>
-													</button>
-												);
-											})}
-										</div>
+										<SegmentedStackRadioGroup
+											value={cursorMotionBlurPreset()}
+											onChange={(value) =>
+												applyCursorMotionBlurPreset(
+													value as CursorMotionBlurPreset,
+												)
+											}
+											options={CURSOR_MOTION_BLUR_PRESET_OPTIONS}
+										/>
 									</Field>
 									<Field name="Strength">
 										<Slider
@@ -1074,65 +1389,6 @@ export function ConfigSidebar() {
 								</div>
 							</KCollapsible.Content>
 						</KCollapsible>
-						<Field
-							name="High Quality SVG Cursors"
-							icon={<IconLucideSparkles />}
-							value={
-								<Toggle
-									checked={(project.cursor as any).useSvg ?? true}
-									onChange={(value) => {
-										setProject("cursor", "useSvg" as any, value);
-									}}
-								/>
-							}
-						/>
-					</Show>
-
-					{/* <Field name="Animation Style" icon={<IconLucideRabbit />}>
-            <RadioGroup
-              defaultValue="regular"
-              value={project.cursor.animationStyle}
-              onChange={(value) => {
-                setProject(
-                  "cursor",
-                  "animationStyle",
-                  value as CursorAnimationStyle
-                );
-              }}
-              class="flex flex-col gap-2"
-              disabled
-            >
-              {(
-                Object.entries(CURSOR_ANIMATION_STYLES) as [
-                  CursorAnimationStyle,
-                  string
-                ][]
-              ).map(([value, label]) => (
-                <RadioGroup.Item value={value} class="flex items-center">
-                  <RadioGroup.ItemInput class="sr-only peer" />
-                  <RadioGroup.ItemControl
-                    class={cx(
-                      "mr-2 w-4 h-4 rounded-full border border-gray-300",
-                      "relative after:absolute after:inset-0 after:m-auto after:block after:w-2 after:h-2 after:rounded-full",
-                      "after:transition-colors after:duration-200",
-                      "peer-checked:border-blue-500 peer-checked:after:bg-blue-400",
-                      "peer-focus-visible:ring-2 peer-focus-visible:ring-blue-400/50",
-                      "peer-disabled:opacity-50"
-                    )}
-                  />
-                  <span
-                    class={cx(
-                      "text-gray-12",
-                      "peer-checked:text-gray-900",
-                      "peer-disabled:opacity-50"
-                    )}
-                  >
-                    {label}
-                  </span>
-                </RadioGroup.Item>
-              ))}
-            </RadioGroup>
-          </Field> */}
 					</KTabs.Content>
 					<KTabs.Content value="hotkeys" class="flex flex-1 p-4 min-h-0">
 					<Field name="Hotkeys" icon={<IconCapHotkeys />}>
