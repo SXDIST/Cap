@@ -871,6 +871,7 @@ export function ConfigSidebar() {
 			| "keyboard"
 			| "hotkeys"
 			| "captions",
+		collapsed: false,
 	});
 
 	let scrollRef!: HTMLDivElement;
@@ -878,7 +879,13 @@ export function ConfigSidebar() {
 	return (
 		<KTabs
 			value={editorState.timeline.selection ? undefined : state.selectedTab}
-			class="flex flex-row min-h-0 shrink-0 flex-1 max-w-[26rem] overflow-hidden rounded-xl z-10 bg-gray-1 dark:bg-gray-2 border border-gray-3"
+			class={cx(
+				"flex min-h-0 shrink-0 overflow-hidden rounded-xl z-10 bg-gray-1 dark:bg-gray-2 border border-gray-3 transition-[width,flex-basis] duration-200 ease-out",
+				"will-change-[width,flex-basis]",
+				state.collapsed
+					? "w-[4.5rem] basis-[4.5rem]"
+					: "w-[26rem] basis-[26rem]",
+			)}
 		>
 			<KTabs.List class="flex relative overflow-hidden z-[60] flex-col items-center gap-3 w-[4.5rem] py-4 text-lg border-r border-gray-3 shrink-0 bg-gray-1 dark:bg-gray-2">
 				<For
@@ -931,7 +938,13 @@ export function ConfigSidebar() {
 								if (editorState.timeline.selection) {
 									setEditorState("timeline", "selection", null);
 								}
-								setState("selectedTab", item.id);
+								const isActiveTab = state.selectedTab === item.id;
+								if (isActiveTab) {
+									setState("collapsed", !state.collapsed);
+								} else {
+									setState("selectedTab", item.id);
+									setState("collapsed", false);
+								}
 								scrollRef.scrollTo({
 									top: 0,
 								});
@@ -952,7 +965,12 @@ export function ConfigSidebar() {
 				</For>
 			</KTabs.List>
 			<div
-				class="flex flex-col flex-1 min-w-0 min-h-0"
+				class={cx(
+					"flex min-h-0 w-[21.5rem] shrink-0 flex-col transition-[opacity,transform] duration-200 ease-out will-change-[opacity,transform]",
+					state.collapsed
+						? "pointer-events-none translate-x-2 opacity-0"
+						: "translate-x-0 opacity-100",
+				)}
 			>
 				<div
 					ref={scrollRef}
