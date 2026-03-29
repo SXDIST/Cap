@@ -231,8 +231,8 @@ export function EditorSkeleton() {
 							"min-height": `${MIN_PLAYER_HEIGHT}px`,
 						}}
 					>
-						<PlayerSkeleton />
 						<SidebarSkeleton />
+						<PlayerSkeleton />
 					</div>
 					<div
 						class="flex-none min-h-0 px-2 pb-0.5 overflow-hidden relative"

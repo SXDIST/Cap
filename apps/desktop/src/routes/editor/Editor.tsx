@@ -460,6 +460,7 @@ function Inner() {
 								"min-height": `${MIN_PLAYER_HEIGHT}px`,
 							}}
 						>
+							<ConfigSidebar />
 							<div class="flex flex-col flex-1 rounded-xl border bg-gray-1 dark:bg-gray-2 border-gray-3 overflow-hidden">
 								<PlayerContent />
 								<div
@@ -489,7 +490,6 @@ function Inner() {
 									</div>
 								</div>
 							</div>
-							<ConfigSidebar />
 						</div>
 						<div
 							class="flex-none min-h-0 px-2 pb-0.5 overflow-hidden relative"
