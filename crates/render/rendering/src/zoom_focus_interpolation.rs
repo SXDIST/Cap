@@ -3,11 +3,20 @@ use cap_project::{ClickSpringConfig, CursorEvents, ScreenMovementSpring, XY, Zoo
 use crate::{
     Coord, RawDisplayUVSpace,
     cursor_interpolation::PrecomputedCursorTimeline,
-    spring_mass_damper::{SpringMassDamperSimulation, SpringMassDamperSimulationConfig},
+    spring_mass_damper::SpringMassDamperSimulationConfig,
 };
 
+#[derive(Clone, Copy)]
+struct CameraShiftTween {
+    from: XY<f32>,
+    to: XY<f32>,
+    start_time_ms: f64,
+    end_time_ms: f64,
+}
+
 struct ZoomFocusPrecomputeSim {
-    sim: SpringMassDamperSimulation,
+    position: XY<f32>,
+    active_tween: Option<CameraShiftTween>,
     last_integrated_ms: f64,
 }
 
@@ -122,6 +131,7 @@ struct SegmentClusters {
     start_secs: f64,
     end_secs: f64,
     zoom_amount: f64,
+    edge_snap_ratio: f64,
     clusters: Vec<ClickCluster>,
 }
 
@@ -233,6 +243,7 @@ impl ZoomFocusInterpolator {
                 start_secs: s.start,
                 end_secs: s.end,
                 zoom_amount: s.amount,
+                edge_snap_ratio: s.edge_snap_ratio,
                 clusters: build_clusters(cursor_events, s.start, s.end, s.amount),
             })
             .collect()
@@ -254,7 +265,7 @@ impl ZoomFocusInterpolator {
             .and_then(|sc| cluster_center_at_time(&sc.clusters, time_ms))
     }
 
-    fn focus_target_at(&self, time_secs: f32) -> XY<f32> {
+    fn raw_focus_target_at(&self, time_secs: f32) -> XY<f32> {
         if let Some(pos) = Self::raw_cursor_position_at(&self.cursor_events, time_secs) {
             return pos;
         }
@@ -264,6 +275,90 @@ impl ZoomFocusInterpolator {
         }
 
         XY::new(0.5, 0.5)
+    }
+
+    fn active_segment_at(&self, time_secs: f64) -> Option<&SegmentClusters> {
+        self.segment_clusters
+            .iter()
+            .find(|sc| time_secs >= sc.start_secs && time_secs <= sc.end_secs)
+    }
+
+    fn edge_shift_target(
+        current_center: XY<f32>,
+        cursor_pos: XY<f32>,
+        zoom_amount: f64,
+        edge_snap_ratio: f64,
+    ) -> XY<f32> {
+        let zoom = zoom_amount.max(1.0) as f32;
+        let viewport_half = 0.5 / zoom;
+        let viewport_size = viewport_half * 2.0;
+        let margin = (viewport_size * edge_snap_ratio.clamp(0.08, 0.35) as f32)
+            .clamp(viewport_size * 0.08, viewport_size * 0.33);
+
+        let mut left = current_center.x - viewport_half;
+        let mut top = current_center.y - viewport_half;
+        let right = current_center.x + viewport_half;
+        let bottom = current_center.y + viewport_half;
+
+        let inner_left = left + margin;
+        let inner_right = right - margin;
+        let inner_top = top + margin;
+        let inner_bottom = bottom - margin;
+
+        if cursor_pos.x < inner_left {
+            left = cursor_pos.x - margin;
+        } else if cursor_pos.x > inner_right {
+            left = cursor_pos.x + margin - viewport_size;
+        }
+
+        if cursor_pos.y < inner_top {
+            top = cursor_pos.y - margin;
+        } else if cursor_pos.y > inner_bottom {
+            top = cursor_pos.y + margin - viewport_size;
+        }
+
+        let max_origin = (1.0 - viewport_size).max(0.0);
+        left = left.clamp(0.0, max_origin);
+        top = top.clamp(0.0, max_origin);
+
+        XY::new(left + viewport_half, top + viewport_half)
+    }
+
+    fn tween_progress(t: f32) -> f32 {
+        let t = t.clamp(0.0, 1.0);
+        t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
+    }
+
+    fn tween_duration_ms(
+        from: XY<f32>,
+        to: XY<f32>,
+        screen_spring: ScreenMovementSpring,
+    ) -> f64 {
+        let dx = to.x - from.x;
+        let dy = to.y - from.y;
+        let distance = (dx * dx + dy * dy).sqrt();
+        let responsiveness =
+            (screen_spring.stiffness / (screen_spring.mass.max(0.1) * 140.0)).clamp(0.55, 2.2);
+        let damping_bias = (screen_spring.damping / 14.0).clamp(0.75, 1.35);
+        let duration = (110.0 + distance as f64 * 520.0) / (responsiveness * damping_bias) as f64;
+        duration.clamp(85.0, 240.0)
+    }
+
+    fn evaluate_tween(tween: CameraShiftTween, time_ms: f64) -> XY<f32> {
+        if time_ms <= tween.start_time_ms {
+            return tween.from;
+        }
+        if time_ms >= tween.end_time_ms {
+            return tween.to;
+        }
+
+        let t =
+            ((time_ms - tween.start_time_ms) / (tween.end_time_ms - tween.start_time_ms)) as f32;
+        let eased = Self::tween_progress(t);
+        XY::new(
+            tween.from.x + (tween.to.x - tween.from.x) * eased,
+            tween.from.y + (tween.to.y - tween.from.y) * eased,
+        )
     }
 
     fn raw_cursor_position_at(cursor_events: &CursorEvents, time_secs: f32) -> Option<XY<f32>> {
@@ -340,28 +435,20 @@ impl ZoomFocusInterpolator {
         }
 
         if self.events.is_none() {
-            let spring_config = SpringMassDamperSimulationConfig {
-                tension: self.screen_spring.stiffness,
-                mass: self.screen_spring.mass,
-                friction: self.screen_spring.damping,
-            };
-            let mut sim = SpringMassDamperSimulation::new(spring_config);
-            let initial_pos = self.focus_target_at(0.0);
-            sim.set_position(initial_pos);
-            sim.set_velocity(XY::new(0.0, 0.0));
-            sim.set_target_position(initial_pos);
+            let initial_pos = self.raw_focus_target_at(0.0);
             self.events = Some(vec![SmoothedFocusEvent {
                 time: 0.0,
                 position: initial_pos,
             }]);
             self.precompute_sim = Some(ZoomFocusPrecomputeSim {
-                sim,
+                position: initial_pos,
+                active_tween: None,
                 last_integrated_ms: 0.0,
             });
         }
 
         loop {
-            let (next_ms, step_ms) = {
+            let next_ms = {
                 let Some(ps) = self.precompute_sim.as_ref() else {
                     break;
                 };
@@ -372,43 +459,67 @@ impl ZoomFocusInterpolator {
                 if next_ms <= ps.last_integrated_ms + f64::EPSILON {
                     break;
                 }
-                let step_ms = next_ms - ps.last_integrated_ms;
-                (next_ms, step_ms)
+                next_ms
             };
             let time_secs = (next_ms / 1000.0) as f32;
-            let target = self.focus_target_at(time_secs);
-            let zoom_amount = self.zoom_amount_at(next_ms / 1000.0);
+            let raw_target = self.raw_focus_target_at(time_secs);
+            let active_segment = self
+                .active_segment_at(next_ms / 1000.0)
+                .map(|segment| (segment.zoom_amount, segment.edge_snap_ratio));
             let Some(ps) = self.precompute_sim.as_mut() else {
                 break;
             };
             let Some(events) = self.events.as_mut() else {
                 break;
             };
-            ps.sim.set_target_position(target);
-            ps.sim.run(step_ms as f32);
 
-            let viewport_half = (0.5 / zoom_amount) as f32;
-            let max_lag = (viewport_half * 0.65).max(0.05);
-            let dx = ps.sim.position.x - target.x;
-            let dy = ps.sim.position.y - target.y;
-            let dist_sq = dx * dx + dy * dy;
-            if dist_sq > max_lag * max_lag {
-                let dist = dist_sq.sqrt();
-                let scale = max_lag / dist;
-                ps.sim
-                    .set_position(XY::new(target.x + dx * scale, target.y + dy * scale));
-                ps.sim.set_velocity(XY::new(
-                    ps.sim.velocity.x * scale,
-                    ps.sim.velocity.y * scale,
-                ));
+            let current_position = ps
+                .active_tween
+                .map(|tween| Self::evaluate_tween(tween, ps.last_integrated_ms))
+                .unwrap_or(ps.position);
+
+            let desired_position = active_segment.map_or(raw_target, |(zoom_amount, edge_snap_ratio)| {
+                Self::edge_shift_target(
+                    current_position,
+                    raw_target,
+                    zoom_amount,
+                    edge_snap_ratio,
+                )
+            });
+
+            let delta_x = desired_position.x - current_position.x;
+            let delta_y = desired_position.y - current_position.y;
+            let shift_distance_sq = delta_x * delta_x + delta_y * delta_y;
+
+            if shift_distance_sq > 0.000001 {
+                let duration_ms =
+                    Self::tween_duration_ms(current_position, desired_position, self.screen_spring);
+                ps.active_tween = Some(CameraShiftTween {
+                    from: current_position,
+                    to: desired_position,
+                    start_time_ms: ps.last_integrated_ms,
+                    end_time_ms: ps.last_integrated_ms + duration_ms,
+                });
+            }
+
+            let next_position = ps
+                .active_tween
+                .map(|tween| Self::evaluate_tween(tween, next_ms))
+                .unwrap_or(current_position);
+
+            if let Some(tween) = ps.active_tween
+                && next_ms + f64::EPSILON >= tween.end_time_ms
+            {
+                ps.active_tween = None;
             }
 
             ps.last_integrated_ms = next_ms;
+            ps.position = next_position;
             events.push(SmoothedFocusEvent {
                 time: next_ms,
                 position: XY::new(
-                    ps.sim.position.x.clamp(0.0, 1.0),
-                    ps.sim.position.y.clamp(0.0, 1.0),
+                    next_position.x.clamp(0.0, 1.0),
+                    next_position.y.clamp(0.0, 1.0),
                 ),
             });
         }
@@ -439,7 +550,7 @@ impl ZoomFocusInterpolator {
     }
 
     fn interpolate_direct(&self, time_secs: f32) -> Coord<RawDisplayUVSpace> {
-        let target = self.focus_target_at(time_secs);
+        let target = self.raw_focus_target_at(time_secs);
         Coord::new(XY::new(target.x as f64, target.y as f64))
     }
 

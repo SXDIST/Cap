@@ -18,6 +18,10 @@ import { produce } from "solid-js/store";
 import { commands } from "~/utils/tauri";
 import { useEditorContext } from "../context";
 import {
+	applyZoomAnimationDefaults,
+	getZoomSegmentAnimationDefaults,
+} from "../projectConfig";
+import {
 	useSegmentContext,
 	useTimelineContext,
 	useTrackContext,
@@ -81,7 +85,10 @@ export function ZoomTrack(props: {
 	const handleGenerateZoomSegments = async () => {
 		setIsGeneratingAutoZoom(true);
 		try {
-			const zoomSegments = await commands.generateZoomSegmentsFromClicks();
+			const zoomSegments = applyZoomAnimationDefaults(
+				await commands.generateZoomSegmentsFromClicks(),
+				project.screenMovementSpring,
+			);
 			setProject("timeline", "zoomSegments", zoomSegments);
 			if (zoomSegments.length > 0) {
 				const currentSize = project.cursor?.size ?? 0;
@@ -204,6 +211,9 @@ export function ZoomTrack(props: {
 
 					const createSegment = (endTime: number) => {
 						if (segmentCreated) return;
+						const defaults = getZoomSegmentAnimationDefaults(
+							project.screenMovementSpring,
+						);
 
 						batch(() => {
 							setProject("timeline", "zoomSegments", (v) => v ?? []);
@@ -228,6 +238,8 @@ export function ZoomTrack(props: {
 										end: Math.max(minEndTime, endTime),
 										amount: 1.5,
 										mode: "auto",
+										instantAnimation: defaults.instantAnimation,
+										edgeSnapRatio: defaults.edgeSnapRatio,
 									});
 
 									createdSegmentIndex = index;

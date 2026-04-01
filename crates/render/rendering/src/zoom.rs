@@ -4,10 +4,6 @@ use crate::{Coord, RawDisplayUVSpace};
 
 pub const ZOOM_DURATION: f64 = 1.0;
 
-const SCREEN_SPRING_STIFFNESS: f64 = 200.0;
-const SCREEN_SPRING_DAMPING: f64 = 40.0;
-const SCREEN_SPRING_MASS: f64 = 2.25;
-
 #[derive(Debug, Clone, Copy)]
 pub struct SegmentsCursor<'a> {
     time: f64,
@@ -69,9 +65,16 @@ impl SegmentBounds {
         };
 
         let (effective_zoom, viewport_center) = if is_auto_mode {
-            let center =
-                Self::calculate_follow_center(focus_pos, segment.amount, segment.edge_snap_ratio);
-            (segment.amount, center)
+            let viewport_half = 0.5 / segment.amount;
+            let min_center = viewport_half;
+            let max_center = 1.0 - viewport_half;
+            (
+                segment.amount,
+                (
+                    focus_pos.0.clamp(min_center, max_center),
+                    focus_pos.1.clamp(min_center, max_center),
+                ),
+            )
         } else {
             (segment.amount, focus_pos)
         };
@@ -98,12 +101,28 @@ impl SegmentBounds {
         if snap_ratio <= 0.0 {
             return scalar;
         }
-        let lo = snap_ratio;
-        let hi = 1.0 - snap_ratio + 0.0001;
-        if hi <= lo {
+        let lo = snap_ratio.clamp(0.0, 0.49);
+        let hi = 1.0 - lo;
+        if hi <= lo + f64::EPSILON {
             return 0.5;
         }
-        ((scalar - lo) / (hi - lo)).clamp(0.0, 1.0)
+        let center = 0.5;
+        let inner_half = ((hi - lo) * 0.5).max(f64::EPSILON);
+        let center_offset = ((scalar - center) / inner_half).clamp(-1.0, 1.0);
+        let center_bias = center + center_offset * 0.08;
+
+        if scalar <= lo {
+            let t = (scalar / lo).clamp(0.0, 1.0);
+            return center_bias * (1.0 - t) + 0.5 * (t * t * (3.0 - 2.0 * t));
+        }
+
+        if scalar >= hi {
+            let t = ((scalar - hi) / (1.0 - hi)).clamp(0.0, 1.0);
+            return center_bias * (1.0 - t)
+                + (0.5 + 0.5 * (t * t * (3.0 - 2.0 * t)));
+        }
+
+        center_bias
     }
 
     fn calculate_follow_center(
@@ -145,7 +164,7 @@ pub struct InterpolatedZoom {
     pub bounds: SegmentBounds,
 }
 
-fn spring_ease(t: f32) -> f32 {
+fn smootherstep(t: f32) -> f32 {
     if t <= 0.0 {
         return 0.0;
     }
@@ -153,41 +172,22 @@ fn spring_ease(t: f32) -> f32 {
         return 1.0;
     }
 
-    let omega0 = (SCREEN_SPRING_STIFFNESS / SCREEN_SPRING_MASS).sqrt() as f32;
-    let zeta = (SCREEN_SPRING_DAMPING
-        / (2.0 * (SCREEN_SPRING_STIFFNESS * SCREEN_SPRING_MASS).sqrt())) as f32;
-
-    if zeta < 1.0 {
-        let omega_d = omega0 * (1.0 - zeta * zeta).sqrt();
-        let decay = (-zeta * omega0 * t).exp();
-        1.0 - decay * ((omega_d * t).cos() + (zeta * omega0 / omega_d) * (omega_d * t).sin())
-    } else {
-        let decay = (-omega0 * t).exp();
-        1.0 - decay * (1.0 + omega0 * t)
-    }
+    t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
 }
 
-fn spring_ease_out(t: f32) -> f32 {
+fn smooth_ease_in(t: f32) -> f32 {
+    smootherstep(t)
+}
+
+fn smooth_ease_out(t: f32) -> f32 {
     if t <= 0.0 {
         return 0.0;
     }
     if t >= 1.0 {
         return 1.0;
     }
-
-    let omega0 = (SCREEN_SPRING_STIFFNESS / SCREEN_SPRING_MASS).sqrt() as f32 * 0.9;
-    let zeta = (SCREEN_SPRING_DAMPING
-        / (2.0 * (SCREEN_SPRING_STIFFNESS * SCREEN_SPRING_MASS).sqrt())) as f32
-        * 1.15;
-
-    if zeta < 1.0 {
-        let omega_d = omega0 * (1.0 - zeta * zeta).sqrt();
-        let decay = (-zeta * omega0 * t).exp();
-        1.0 - decay * ((omega_d * t).cos() + (zeta * omega0 / omega_d) * (omega_d * t).sin())
-    } else {
-        let decay = (-omega0 * t).exp();
-        1.0 - decay * (1.0 + omega0 * t)
-    }
+    let inv = 1.0 - t;
+    1.0 - inv * inv * inv
 }
 
 fn instant_ease(t: f32) -> f32 {
@@ -232,8 +232,8 @@ impl InterpolatedZoom {
                 actual_cursor,
                 segment_end_focus,
                 segment_end_cursor,
-                spring_ease,
-                spring_ease_out,
+                smooth_ease_in,
+                smooth_ease_out,
             )
         }
     }

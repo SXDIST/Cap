@@ -151,14 +151,14 @@ fn fs_main(@builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<f32> {
     var accum = base_color * base_weight;
     var weight_sum = base_weight;
 
-    if blur_mode < 1.5 {
+    if blur_mode < 1.5 || blur_mode > 2.5 {
         let motion_vec = uniforms.motion_blur_vector;
         let motion_len = length(motion_vec);
-        if motion_len < 1e-4 {
+        if motion_len < 1e-4 && blur_mode < 2.5 {
             return mix(shadow_color, base_color, base_color.a);
         }
 
-        let velocity_uv = motion_vec;
+        let velocity_uv = select(motion_vec * 1.9, motion_vec * 2.7, blur_mode > 2.5);
         let offset_base = -0.5;
         let k = 20;
 
@@ -176,22 +176,26 @@ fn fs_main(@builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<f32> {
                 }
             }
         }
-    } else {
+    }
+
+    if blur_mode > 1.5 {
         let center = uniforms.motion_blur_zoom_center;
         let dir = center - target_uv;
         let dist = length(dir);
-        if dist < 1e-4 || zoom_amount < 1e-4 {
+        if (dist < 1e-4 || zoom_amount < 1e-4) && blur_mode < 2.5 {
             return mix(shadow_color, base_color, base_color.a);
         }
 
-        let scaled_dir = dir * blur_strength;
-        let max_kernel = 13.0;
+        let zoom_scale = 0.06 + min(zoom_amount, 1.0) * 0.1;
+        let scaled_dir = dir * blur_strength * zoom_scale;
+        let max_kernel = 7.0;
 
         let offset_rand = rand(vec2<f32>(target_uv.x * 7.37, target_uv.y * 11.23));
 
-        for (var i = 0; i < 13; i = i + 1) {
-            let percent = (f32(i) + offset_rand) / max_kernel;
-            let weight = 4.0 * (percent - percent * percent);
+        for (var i = 0; i < 7; i = i + 1) {
+            let centered_percent = ((f32(i) + offset_rand) / max_kernel) - 0.5;
+            let percent = centered_percent * 1.2;
+            let weight = max(0.0, 1.0 - abs(percent)) * 0.45;
             let sample_uv = target_uv + scaled_dir * percent;
 
             if sample_uv.x >= 0.0 && sample_uv.x <= 1.0 && sample_uv.y >= 0.0 && sample_uv.y <= 1.0 {

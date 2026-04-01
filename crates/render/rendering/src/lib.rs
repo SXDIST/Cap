@@ -1688,11 +1688,25 @@ fn resolve_motion_descriptor(
     let move_metric = analysis.movement_magnitude;
     let zoom_strength = base_amount * zoom_multiplier;
     let move_strength = base_amount * move_multiplier;
+    let has_zoom = zoom_metric > MOTION_MIN_THRESHOLD && zoom_strength > 0.0;
+    let has_move = move_metric > MOTION_MIN_THRESHOLD && move_strength > 0.0;
 
-    if zoom_metric > move_metric && zoom_metric > MOTION_MIN_THRESHOLD && zoom_strength > 0.0 {
+    if has_zoom && has_move {
+        let zoom_amount = (zoom_metric * zoom_strength).min(MAX_ZOOM_AMOUNT);
+        let vector = XY::new(
+            analysis.movement_uv.x * move_strength,
+            analysis.movement_uv.y * move_strength,
+        );
+        MotionBlurDescriptor::combined(
+            clamp_vector(vector, MOTION_VECTOR_CAP),
+            analysis.zoom_center_uv,
+            zoom_amount,
+            zoom_strength.max(move_strength),
+        )
+    } else if has_zoom && zoom_metric > move_metric {
         let zoom_amount = (zoom_metric * zoom_strength).min(MAX_ZOOM_AMOUNT);
         MotionBlurDescriptor::zoom(analysis.zoom_center_uv, zoom_amount, zoom_strength)
-    } else if move_metric > MOTION_MIN_THRESHOLD && move_strength > 0.0 {
+    } else if has_move {
         let vector = XY::new(
             analysis.movement_uv.x * move_strength,
             analysis.movement_uv.y * move_strength,
@@ -1716,11 +1730,11 @@ const CAMERA_PADDING: f32 = 50.0;
 const SCREEN_MAX_PADDING: f64 = 0.4;
 
 const MOTION_BLUR_BASELINE_FPS: f32 = 60.0;
-const MOTION_MIN_THRESHOLD: f32 = 0.003;
+const MOTION_MIN_THRESHOLD: f32 = 0.0015;
 const MOTION_VECTOR_CAP: f32 = 2.0;
-const MAX_ZOOM_AMOUNT: f32 = 2.0;
-const DISPLAY_MOVE_MULTIPLIER: f32 = 1.0;
-const DISPLAY_ZOOM_MULTIPLIER: f32 = 1.0;
+const MAX_ZOOM_AMOUNT: f32 = 1.35;
+const DISPLAY_MOVE_MULTIPLIER: f32 = 3.4;
+const DISPLAY_ZOOM_MULTIPLIER: f32 = 0.7;
 const CAMERA_MULTIPLIER: f32 = 1.0;
 const CAMERA_ONLY_MULTIPLIER: f32 = 0.45;
 
@@ -1729,6 +1743,7 @@ enum MotionBlurMode {
     None,
     Movement,
     Zoom,
+    Combined,
 }
 
 impl MotionBlurMode {
@@ -1737,6 +1752,7 @@ impl MotionBlurMode {
             MotionBlurMode::None => 0.0,
             MotionBlurMode::Movement => 1.0,
             MotionBlurMode::Zoom => 2.0,
+            MotionBlurMode::Combined => 3.0,
         }
     }
 }
@@ -1782,6 +1798,21 @@ impl MotionBlurDescriptor {
             mode: MotionBlurMode::Zoom,
             strength,
             movement_vector_uv: [0.0, 0.0],
+            zoom_center_uv: [center_uv.x, center_uv.y],
+            zoom_amount,
+        }
+    }
+
+    fn combined(
+        vector_uv: XY<f32>,
+        center_uv: XY<f32>,
+        zoom_amount: f32,
+        strength: f32,
+    ) -> Self {
+        Self {
+            mode: MotionBlurMode::Combined,
+            strength,
+            movement_vector_uv: [vector_uv.x, vector_uv.y],
             zoom_center_uv: [center_uv.x, center_uv.y],
             zoom_amount,
         }
